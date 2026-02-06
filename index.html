@@ -35,7 +35,21 @@
 
         <div id="result-screen" class="hide">
             <h2>測驗結束！</h2>
-            <div class="final-score" id="final-score">85 分</div>
+            <div class="final-score" id="final-score">0 分</div>
+
+            <div id="perfect-score-img" class="hide" style="margin: 20px 0;">
+                <img src="https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif" 
+                     alt="Good Job" 
+                     style="width: 100%; max-width: 300px; border-radius: 10px;">
+                <p style="color: #28a745; font-weight: bold; font-size: 1.2rem;">太強了！全部答對！🎉</p>
+            </div>
+
+            <div id="review-container" class="hide">
+                <h3 style="color: #555;">🧐 錯題檢討</h3>
+                <ul id="review-list">
+                    </ul>
+            </div>
+
             <button id="restart-btn" class="btn">重新開始</button>
         </div>
     </div>

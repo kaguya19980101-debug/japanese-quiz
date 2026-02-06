@@ -99,3 +99,46 @@ body {
     width: 70%; /* 寬度 */
     text-align: center;
 }
+/* --- 錯題檢討區塊樣式 --- */
+#review-container {
+    margin-top: 20px;
+    text-align: left;
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px solid #e9ecef;
+    max-height: 300px; /* 如果錯太多題，可以捲動 */
+    overflow-y: auto;
+}
+
+#review-list {
+    list-style: none; /* 拿掉前面的小黑點 */
+    padding: 0;
+    margin: 0;
+}
+
+.review-item {
+    background: white;
+    border-bottom: 1px solid #eee;
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+}
+
+.review-q {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+    display: block;
+}
+
+.review-wrong {
+    color: #dc3545; /* 紅色 */
+    margin-right: 15px;
+}
+
+.review-correct {
+    color: #28a745; /* 綠色 */
+    font-weight: bold;
+}

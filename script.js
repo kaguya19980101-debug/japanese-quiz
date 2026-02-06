@@ -8,6 +8,8 @@ let score = 0;
 let selectedOption = null; // 使用者目前選了哪個答案
 
 let currentUserName = ""; // 用來存使用者的名字
+let wrongAnswers = []; // 新增這行：用來存答錯的題目
+
 const usernameInput = document.getElementById('username'); // 抓取輸入框
 // --- DOM 抓取元素 ---
 const startScreen = document.getElementById('start-screen');
@@ -43,6 +45,12 @@ const nameValue = usernameInput.value.trim(); // 去除前後空白
         return; //如果不填名字，就直接結束，不讓遊戲開始
     }
     currentUserName = nameValue; // 把名字存起來
+    // 新增這行：清空錯題紀錄
+    wrongAnswers = [];
+    
+    // 新增這兩行：確保重新開始時，檢討區和讚讚圖都是隱藏的
+    document.getElementById('perfect-score-img').classList.add('hide');
+    document.getElementById('review-container').classList.add('hide');
 
     // 1. 隱藏其他畫面，顯示遊戲畫面
     startScreen.classList.add('hide');
@@ -144,7 +152,12 @@ function submitAnswer() {
     } else {
         // 答錯了！
         selectedOption.classList.add('wrong'); // 變紅色
-        
+
+        wrongAnswers.push({
+            question: shuffledQuestions[currentQuestionIndex].q,
+            userAns: userAns,
+            correctAns: correctAns
+        });
         //也要把正確答案標示出來讓使用者知道
         allBtns.forEach(btn => {
             if (btn.innerText === correctAns) {
@@ -176,7 +189,29 @@ function showResults() {
     
     // 新增：遊戲結束時，自動把分數傳給 Google 試算表
     sendDataToGoogleSheet(score);
+    if (score === 100) {
+        // 情況 A：滿分 -> 顯示讚讚圖
+        document.getElementById('perfect-score-img').classList.remove('hide');
+    } else {
+        // 情況 B：沒滿分 -> 顯示錯題列表
+        const reviewContainer = document.getElementById('review-container');
+        const reviewList = document.getElementById('review-list');
+        
+        reviewContainer.classList.remove('hide');
+        reviewList.innerHTML = ''; // 先清空舊的
 
+        // 把 wrongAnswers 陣列裡的每一題印出來
+        wrongAnswers.forEach(item => {
+            const li = document.createElement('li');
+            li.classList.add('review-item');
+            li.innerHTML = `
+                <span class="review-q">Q: ${item.question}</span>
+                <span class="review-wrong">❌ 你選: ${item.userAns}</span>
+                <span class="review-correct">✅ 正解: ${item.correctAns}</span>
+            `;
+            reviewList.appendChild(li);
+        });
+    }
     // 把 nextBtn 改回來 (為了下一局)
     nextBtn.innerText = "下一題";
     nextBtn.onclick = () => {

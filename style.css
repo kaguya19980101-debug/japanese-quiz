@@ -89,3 +89,13 @@ body {
 }
 
 .action-btn { width: 100%; margin-top: 10px; }
+
+.name-input {
+    padding: 10px;
+    font-size: 1.2rem;
+    border: 2px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 20px; 
+    width: 70%; /* 寬度 */
+    text-align: center;
+}

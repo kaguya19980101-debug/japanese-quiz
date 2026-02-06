@@ -7,6 +7,8 @@ let currentQuestionIndex = 0;
 let score = 0;
 let selectedOption = null; // 使用者目前選了哪個答案
 
+let currentUserName = ""; // 用來存使用者的名字
+const usernameInput = document.getElementById('username'); // 抓取輸入框
 // --- DOM 抓取元素 ---
 const startScreen = document.getElementById('start-screen');
 const gameScreen = document.getElementById('game-screen');
@@ -35,6 +37,13 @@ restartBtn.addEventListener('click', startGame);
 // --- 函數區 ---
 
 function startGame() {
+const nameValue = usernameInput.value.trim(); // 去除前後空白
+    if (nameValue === "") {
+        alert("請輸入名字才能開始喔！");
+        return; //如果不填名字，就直接結束，不讓遊戲開始
+    }
+    currentUserName = nameValue; // 把名字存起來
+
     // 1. 隱藏其他畫面，顯示遊戲畫面
     startScreen.classList.add('hide');
     resultScreen.classList.add('hide');
@@ -71,7 +80,7 @@ function showQuestion(questionData) {
     // 顯示題目
     questionEl.innerText = questionData.q;
 
-    // ★ 修改重點開始 ★
+    //修改重點開始
     
     // 1. 複製一份選項清單 (用 [...] 語法)，避免動到原本的題庫資料
     // 2. 對這份複製品進行洗牌 (跟洗題目一樣用 random - 0.5)
@@ -89,7 +98,7 @@ function showQuestion(questionData) {
         answerButtonsEl.appendChild(button);
     });
 
-    // ★ 修改重點結束 ★
+    //修改重點結束
 }
 function resetState() {
     // 隱藏下一題按鈕，顯示送出按鈕
@@ -136,7 +145,7 @@ function submitAnswer() {
         // 答錯了！
         selectedOption.classList.add('wrong'); // 變紅色
         
-        // ★ 也要把正確答案標示出來讓使用者知道
+        //也要把正確答案標示出來讓使用者知道
         allBtns.forEach(btn => {
             if (btn.innerText === correctAns) {
                 btn.classList.add('correct'); // 正確答案變綠
@@ -165,7 +174,7 @@ function showResults() {
     resultScreen.classList.remove('hide');
     finalScoreEl.innerText = `${score} 分`;
     
-    // ★ 新增：遊戲結束時，自動把分數傳給 Google 試算表
+    // 新增：遊戲結束時，自動把分數傳給 Google 試算表
     sendDataToGoogleSheet(score);
 
     // 把 nextBtn 改回來 (為了下一局)
@@ -176,7 +185,7 @@ function showResults() {
     };
 }
 
-// ★ 新增這個函式：負責把資料丟給 GAS
+//新增這個函式：負責把資料丟給 GAS
 function sendDataToGoogleSheet(finalScore) {
     // 1. 請填入你剛剛重新部署拿到的 GAS 網址
     const scriptURL = "https://script.google.com/macros/s/AKfycbzQsKfyNKpWFdEWMl-tfgqA_Zd_tzOcW1BtjyzXUzmGBJoylK3gEO4HLmNWXfpWMfIu8w/exec"; 
@@ -185,7 +194,7 @@ function sendDataToGoogleSheet(finalScore) {
     let formData = new FormData();
     formData.append('score', finalScore + " / 100"); // 傳送分數 (例如: 80 / 100)
     formData.append('time', new Date().toLocaleString()); // 傳送目前時間
-
+    formData.append('name', currentUserName);
     // 3. 使用 fetch 發送
     fetch(scriptURL, {
         method: 'POST',

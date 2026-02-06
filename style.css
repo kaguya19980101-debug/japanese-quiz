@@ -1,0 +1,91 @@
+body {
+    font-family: "Microsoft JhengHei", sans-serif;
+    background-color: #f0f2f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+}
+
+.container {
+    width: 90%;
+    max-width: 600px;
+    background: white;
+    padding: 20px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    text-align: center;
+}
+
+.hide { display: none; }
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    font-size: 1.2rem;
+    color: #555;
+}
+
+.btn {
+    padding: 10px 20px;
+    font-size: 1.2rem;
+    cursor: pointer;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: white;
+    transition: 0.2s;
+}
+
+.btn:hover { background-color: #0056b3; }
+.btn:disabled { background-color: #ccc; cursor: not-allowed; }
+
+/* 選項按鈕區域 */
+.btn-grid {
+    display: grid;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+/* 選項按鈕樣式 */
+.option-btn {
+    background-color: #eef;
+    border: 2px solid transparent;
+    color: #333;
+    padding: 15px;
+    font-size: 1.1rem;
+    cursor: pointer;
+    border-radius: 8px;
+    text-align: left;
+}
+
+.option-btn:hover { background-color: #dce; }
+
+/* 狀態樣式：選中、正確、錯誤 */
+.option-btn.selected {
+    border-color: #007bff;
+    background-color: #e7f1ff;
+}
+
+.option-btn.correct {
+    background-color: #d4edda; /* 綠色背景 */
+    color: #155724;
+    border-color: #c3e6cb;
+}
+
+.option-btn.wrong {
+    background-color: #f8d7da; /* 紅色背景 */
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.final-score {
+    font-size: 3rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 20px 0;
+}
+
+.action-btn { width: 100%; margin-top: 10px; }

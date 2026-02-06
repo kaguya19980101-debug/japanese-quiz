@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>日文大會考</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <div id="start-screen">
+            <h1>🇯🇵 日文單字測驗</h1>
+            <p>共 20 題，滿分 100 分</p>
+            <button id="start-btn" class="btn">開始遊戲</button>
+        </div>
+
+        <div id="game-screen" class="hide">
+            <div class="header">
+                <span id="progress-text">第 1 / 20 題</span>
+                <span id="score-text">得分: 0</span>
+            </div>
+            
+            <div class="card">
+                <h2 id="question">題目會顯示在這裡</h2>
+                <div id="answer-buttons" class="btn-grid">
+                    </div>
+            </div>
+
+            <button id="submit-btn" class="btn action-btn" disabled>確認送出</button>
+            <button id="next-btn" class="btn action-btn hide">下一題</button>
+        </div>
+
+        <div id="result-screen" class="hide">
+            <h2>測驗結束！</h2>
+            <div class="final-score" id="final-score">85 分</div>
+            <button id="restart-btn" class="btn">重新開始</button>
+        </div>
+    </div>
+
+    <script src="questions.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

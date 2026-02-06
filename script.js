@@ -1,5 +1,5 @@
 // --- 變數設定 ---
-const TOTAL_QUESTIONS = 20; // 總題數
+const TOTAL_QUESTIONS = 20; // 總題數 
 const POINTS_PER_Q = 5;     // 一題幾分
 
 let shuffledQuestions = []; // 洗牌後的題庫
@@ -8,10 +8,13 @@ let score = 0;
 let selectedOption = null; // 使用者目前選了哪個答案
 
 let currentUserName = ""; // 用來存使用者的名字
-let wrongAnswers = []; // 新增這行：用來存答錯的題目
+let wrongAnswers = []; // 用來存「這一輪」答錯的題目
 
-const usernameInput = document.getElementById('username'); // 抓取輸入框
+let isReviewMode = false; // 判斷現在是不是在複習
+let savedMistakes = JSON.parse(localStorage.getItem('my_mistakes')) || []; // 讀取歷史錯題
+
 // --- DOM 抓取元素 ---
+const usernameInput = document.getElementById('username'); 
 const startScreen = document.getElementById('start-screen');
 const gameScreen = document.getElementById('game-screen');
 const resultScreen = document.getElementById('result-screen');
@@ -23,161 +26,190 @@ const scoreText = document.getElementById('score-text');
 const finalScoreEl = document.getElementById('final-score');
 
 const startBtn = document.getElementById('start-btn');
+const reviewBtn = document.getElementById('review-btn'); // 紅色按鈕
+const wrongCountSpan = document.getElementById('wrong-count'); // 紅色按鈕上的數字
 const submitBtn = document.getElementById('submit-btn');
 const nextBtn = document.getElementById('next-btn');
 const restartBtn = document.getElementById('restart-btn');
 
+// --- 初始化檢查 (網頁載入時執行) ---
+if (savedMistakes.length > 0) {
+    reviewBtn.classList.remove('hide');
+    wrongCountSpan.innerText = savedMistakes.length;
+}
+
 // --- 事件監聽 ---
 startBtn.addEventListener('click', startGame);
+reviewBtn.addEventListener('click', startReviewMode); // ★ 修復：加入複習按鈕監聽
 submitBtn.addEventListener('click', submitAnswer);
 nextBtn.onclick = () => {
     currentQuestionIndex++;
     setNextQuestion();
 };
-restartBtn.addEventListener('click', startGame);
+restartBtn.addEventListener('click', goHome); // ★ 修復：改為呼叫 goHome 回首頁
 
 // --- 函數區 ---
 
+// 1. 普通模式開始
 function startGame() {
-const nameValue = usernameInput.value.trim(); // 去除前後空白
+    const nameValue = usernameInput.value.trim();
     if (nameValue === "") {
         alert("請輸入名字才能開始喔！");
-        return; //如果不填名字，就直接結束，不讓遊戲開始
+        return;
     }
-    currentUserName = nameValue; // 把名字存起來
-    // 新增這行：清空錯題紀錄
-    wrongAnswers = [];
-    
-    // 新增這兩行：確保重新開始時，檢討區和讚讚圖都是隱藏的
+    currentUserName = nameValue;
+    isReviewMode = false; // ★ 確保這是普通模式
+
+    // 題庫洗牌並取出前 20 題 (確保 questionBank 存在於 questions.js)
+    shuffledQuestions = questionBank.sort(() => Math.random() - 0.5).slice(0, TOTAL_QUESTIONS);
+
+    initGameUI();
+}
+
+// 2. 複習模式開始
+function startReviewMode() {
+    const nameValue = usernameInput.value.trim();
+    if (nameValue === "") {
+        alert("請輸入名字才能開始喔！");
+        return;
+    }
+    currentUserName = nameValue;
+    isReviewMode = true; // ★ 設定為複習模式
+
+    // 題庫來源改成「錯題本」
+    shuffledQuestions = [...savedMistakes].sort(() => Math.random() - 0.5);
+
+    initGameUI();
+}
+
+// 3. 共用介面初始化
+function initGameUI() {
+    // 清空變數
+    score = 0;
+    currentQuestionIndex = 0;
+    wrongAnswers = []; 
+    scoreText.innerText = `得分: 0`;
+
+    // 隱藏檢討相關區塊
     document.getElementById('perfect-score-img').classList.add('hide');
     document.getElementById('review-container').classList.add('hide');
 
-    // 1. 隱藏其他畫面，顯示遊戲畫面
+    // 切換畫面
     startScreen.classList.add('hide');
     resultScreen.classList.add('hide');
     gameScreen.classList.remove('hide');
 
-    // 2. 初始化變數
-    score = 0;
-    currentQuestionIndex = 0;
-    scoreText.innerText = `得分: ${score}`;
-
-// 新增這一段 (修復重新開始時的按鈕 Bug) 
+    // 重置按鈕
     nextBtn.innerText = "下一題"; 
     nextBtn.onclick = () => {
         currentQuestionIndex++;
         setNextQuestion();
     };
 
-    // 3. 題庫洗牌並取出前 20 題 (如果題庫不夠 20 題，就取全部)
-    // sort(() => Math.random() - 0.5) 是最簡單的陣列亂數排序法
-    shuffledQuestions = questionBank.sort(() => Math.random() - 0.5).slice(0, TOTAL_QUESTIONS);
-
     setNextQuestion();
 }
 
+// 4. 回到首頁 (Restart 按鈕用)
+function goHome() {
+    resultScreen.classList.add('hide');
+    gameScreen.classList.add('hide');
+    startScreen.classList.remove('hide');
+
+    // 重新檢查錯題數量 (因為剛剛可能消滅了一些錯題)
+    if (savedMistakes.length > 0) {
+        reviewBtn.classList.remove('hide');
+        wrongCountSpan.innerText = savedMistakes.length;
+    } else {
+        reviewBtn.classList.add('hide');
+    }
+}
+
 function setNextQuestion() {
-    resetState(); // 清空上一題的按鈕
+    resetState();
     showQuestion(shuffledQuestions[currentQuestionIndex]);
 }
 
 function showQuestion(questionData) {
-    // 顯示進度
     progressText.innerText = `第 ${currentQuestionIndex + 1} / ${shuffledQuestions.length} 題`;
-    
-    // 顯示題目
     questionEl.innerText = questionData.q;
 
-    //修改重點開始
-    
-    // 1. 複製一份選項清單 (用 [...] 語法)，避免動到原本的題庫資料
-    // 2. 對這份複製品進行洗牌 (跟洗題目一樣用 random - 0.5)
+    // 洗牌選項
     let randomOptions = [...questionData.options].sort(() => Math.random() - 0.5);
 
-    // 3. 使用洗牌後的 "randomOptions" 來產生按鈕，而不是原本的 questionData.options
     randomOptions.forEach(option => {
         const button = document.createElement('button');
         button.innerText = option;
         button.classList.add('option-btn');
-        
-        // 點擊選項時的動作
         button.addEventListener('click', () => selectOption(button));
-        
         answerButtonsEl.appendChild(button);
     });
-
-    //修改重點結束
 }
+
 function resetState() {
-    // 隱藏下一題按鈕，顯示送出按鈕
     nextBtn.classList.add('hide');
     submitBtn.classList.remove('hide');
-    submitBtn.disabled = true; // 沒選答案前不能送出
+    submitBtn.disabled = true;
     selectedOption = null;
     
-    // 清除舊的選項按鈕
     while (answerButtonsEl.firstChild) {
         answerButtonsEl.removeChild(answerButtonsEl.firstChild);
     }
 }
 
 function selectOption(btn) {
-    // 先把大家選取的樣子取消
     const allBtns = document.querySelectorAll('.option-btn');
     allBtns.forEach(b => b.classList.remove('selected'));
-
-    // 把目前點的這個加上 selected
     btn.classList.add('selected');
-    selectedOption = btn; // 記住使用者選了哪個按鈕 DOM
-
-    // 解鎖送出按鈕
+    selectedOption = btn;
     submitBtn.disabled = false;
 }
 
 function submitAnswer() {
-    // 取得正確答案文字
-    const correctAns = shuffledQuestions[currentQuestionIndex].answer;
+    // ★ 定義 currentQ (修復報錯關鍵)
+    const currentQ = shuffledQuestions[currentQuestionIndex]; 
+
+    const correctAns = currentQ.answer;
     const userAns = selectedOption.innerText;
     
-    // 鎖定所有按鈕，不准再改
     const allBtns = document.querySelectorAll('.option-btn');
     allBtns.forEach(btn => btn.disabled = true);
 
-    // --- 判斷邏輯 ---
     if (userAns === correctAns) {
-        // 答對了！
+        // --- 答對 ---
         score += POINTS_PER_Q;
         scoreText.innerText = `得分: ${score}`;
-        selectedOption.classList.add('correct'); // 變綠色
-    } else {
-        // 答錯了！
-        selectedOption.classList.add('wrong'); // 變紅色
+        selectedOption.classList.add('correct');
 
-        wrongAnswers.push({
-            question: shuffledQuestions[currentQuestionIndex].q,
-            userAns: userAns,
-            correctAns: correctAns
-        });
-        //也要把正確答案標示出來讓使用者知道
+        // ★ 若是複習模式答對 -> 從錯題本移除
+        if (isReviewMode) {
+            savedMistakes = savedMistakes.filter(item => item.q !== currentQ.q);
+            localStorage.setItem('my_mistakes', JSON.stringify(savedMistakes));
+            console.log("已從錯題本移除:", currentQ.q);
+        }
+
+    } else {
+        // --- 答錯 ---
+        selectedOption.classList.add('wrong');
         allBtns.forEach(btn => {
-            if (btn.innerText === correctAns) {
-                btn.classList.add('correct'); // 正確答案變綠
-            }
+            if (btn.innerText === correctAns) btn.classList.add('correct');
         });
+
+        // ★ 紀錄錯題 (存整題資料)
+        let isExist = wrongAnswers.some(q => q.q === currentQ.q);
+        if (!isExist) {
+            let wrongQ = { ...currentQ }; 
+            wrongQ.userWrongAns = userAns;
+            wrongAnswers.push(wrongQ);
+        }
     }
 
-    // 切換按鈕：隱藏「送出」，顯示「下一題」或「看結果」
     submitBtn.classList.add('hide');
     
     if (shuffledQuestions.length > currentQuestionIndex + 1) {
         nextBtn.classList.remove('hide');
     } else {
-        // 已經是最後一題，改顯示結束按鈕 (這裡我們直接偷懶用下一題按鈕改成結算功能，或直接跳轉)
-        // 為了簡單，我們創建一個臨時的 "看成績" 按鈕，或是直接改 nextBtn 的文字
         nextBtn.innerText = "查看成績";
         nextBtn.classList.remove('hide');
-        
-        // 覆寫 nextBtn 的行為變成 showResults (注意：要小心 removeEventListener，這裡最簡單是用另一個變數判斷)
         nextBtn.onclick = showResults; 
     }
 }
@@ -185,60 +217,77 @@ function submitAnswer() {
 function showResults() {
     gameScreen.classList.add('hide');
     resultScreen.classList.remove('hide');
-    finalScoreEl.innerText = `${score} 分`;
     
-    // 新增：遊戲結束時，自動把分數傳給 Google 試算表
-    sendDataToGoogleSheet(score);
-    if (score === 100) {
-        // 情況 A：滿分 -> 顯示讚讚圖
-        document.getElementById('perfect-score-img').classList.remove('hide');
+    // 1. 處理分數與上傳
+    if (isReviewMode) {
+        finalScoreEl.innerText = "複習完成！";
+        if (score === shuffledQuestions.length * POINTS_PER_Q) {
+             finalScoreEl.innerText = "太棒了！錯題全部清除！✨";
+        }
+        console.log("複習模式：不記錄成績"); 
     } else {
-        // 情況 B：沒滿分 -> 顯示錯題列表
+        finalScoreEl.innerText = `${score} 分`;
+        sendDataToGoogleSheet(score);
+    }
+
+    // 2. 處理錯題儲存 (去重)
+    if (wrongAnswers.length > 0) {
+        let allMistakes = [...savedMistakes, ...wrongAnswers];
+        
+        let uniqueMistakes = [];
+        const map = new Map();
+        for (const item of allMistakes) {
+            if(!map.has(item.q)){
+                map.set(item.q, true);
+                uniqueMistakes.push(item);
+            }
+        }
+        
+        localStorage.setItem('my_mistakes', JSON.stringify(uniqueMistakes));
+        savedMistakes = uniqueMistakes; 
+    }
+
+    // 3. 顯示結果列表或讚讚圖
+    // 這裡邏輯：顯示「這一輪」做錯的題目
+    if (wrongAnswers.length === 0) {
+        document.getElementById('perfect-score-img').classList.remove('hide');
+        document.getElementById('review-container').classList.add('hide');
+    } else {
+        document.getElementById('perfect-score-img').classList.add('hide');
         const reviewContainer = document.getElementById('review-container');
         const reviewList = document.getElementById('review-list');
         
         reviewContainer.classList.remove('hide');
-        reviewList.innerHTML = ''; // 先清空舊的
+        reviewList.innerHTML = ''; 
 
-        // 把 wrongAnswers 陣列裡的每一題印出來
         wrongAnswers.forEach(item => {
             const li = document.createElement('li');
             li.classList.add('review-item');
             li.innerHTML = `
-                <span class="review-q">Q: ${item.question}</span>
-                <span class="review-wrong">❌ 你選: ${item.userAns}</span>
-                <span class="review-correct">✅ 正解: ${item.correctAns}</span>
+                <span class="review-q">Q: ${item.q}</span>
+                <span class="review-wrong">❌ 你選: ${item.userWrongAns}</span>
+                <span class="review-correct">✅ 正解: ${item.answer}</span>
             `;
             reviewList.appendChild(li);
         });
     }
-    // 把 nextBtn 改回來 (為了下一局)
-    nextBtn.innerText = "下一題";
-    nextBtn.onclick = () => {
-        currentQuestionIndex++;
-        setNextQuestion();
-    };
 }
 
-//新增這個函式：負責把資料丟給 GAS
 function sendDataToGoogleSheet(finalScore) {
-    // 1. 請填入你剛剛重新部署拿到的 GAS 網址
     const scriptURL = "https://script.google.com/macros/s/AKfycbzQsKfyNKpWFdEWMl-tfgqA_Zd_tzOcW1BtjyzXUzmGBJoylK3gEO4HLmNWXfpWMfIu8w/exec"; 
 
-    // 2. 準備要傳送的資料
     let formData = new FormData();
-    formData.append('score', finalScore + " / 100"); // 傳送分數 (例如: 80 / 100)
-    formData.append('time', new Date().toLocaleString()); // 傳送目前時間
+    formData.append('score', finalScore + " / 100"); 
+    formData.append('time', new Date().toLocaleString());
     formData.append('name', currentUserName);
-    // 3. 使用 fetch 發送
+    
     fetch(scriptURL, {
         method: 'POST',
         body: formData,
-        mode: 'no-cors' // 重要！這行可以避免跨網域錯誤 (CORS error)
+        mode: 'no-cors' 
     })
     .then(() => {
         console.log("成績已成功傳送至 Google 試算表！");
-        // 你也可以在這裡加一個 alert('成績已上傳！');
     })
     .catch(error => {
         console.error('傳送失敗:', error);

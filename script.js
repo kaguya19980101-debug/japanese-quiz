@@ -53,15 +53,33 @@ restartBtn.addEventListener('click', goHome); // ★ 修復：改為呼叫 goHom
 // 1. 普通模式開始
 function startGame() {
     const nameValue = usernameInput.value.trim();
+    // 取得選取的等級
+    const selectedLevel = document.getElementById('level-select').value;
+
     if (nameValue === "") {
         alert("請輸入名字才能開始喔！");
         return;
     }
     currentUserName = nameValue;
-    isReviewMode = false; // ★ 確保這是普通模式
+    isReviewMode = false;
 
-    // 題庫洗牌並取出前 20 題 (確保 questionBank 存在於 questions.js)
-    shuffledQuestions = questionBank.sort(() => Math.random() - 0.5).slice(0, TOTAL_QUESTIONS);
+    // --- 關鍵過濾邏輯 ---
+    let filteredBank = [];
+    if (selectedLevel === "ALL") {
+        filteredBank = [...questionBank]; // 全部
+    } else {
+        // 根據題目裡的 nLevel 標記過濾
+        filteredBank = questionBank.filter(q => q.nLevel === selectedLevel);
+    }
+
+    if (filteredBank.length === 0) {
+        alert(`目前題庫中還沒有 ${selectedLevel} 的題目，請先選擇其他等級！`);
+        return;
+    }
+
+    // 洗牌並取出前 20 題 (若題目不夠 20 題則取最大數量)
+    const count = Math.min(TOTAL_QUESTIONS, filteredBank.length);
+    shuffledQuestions = filteredBank.sort(() => Math.random() - 0.5).slice(0, count);
 
     initGameUI();
 }
@@ -163,38 +181,42 @@ function selectOption(btn) {
     selectedOption = btn;
     submitBtn.disabled = false;
 }
-
 function submitAnswer() {
-    // ★ 定義 currentQ (修復報錯關鍵)
     const currentQ = shuffledQuestions[currentQuestionIndex]; 
 
-    const correctAns = currentQ.answer;
-    const userAns = selectedOption.innerText;
+    // --- 精準比對邏輯 ---
+    // 假設 correctAns 是 "行こう (出發吧)"
+    // 用 split('(')[0] 會切出 "行こう "，再用 trim() 把空格去掉，變成 "行こう"
+    const correctAnsFull = currentQ.answer;
+    const pureJapaneseAns = correctAnsFull.split('(')[0].trim(); 
+    
+    const userAns = selectedOption.innerText; // 使用者選的，例如 "行く"
     
     const allBtns = document.querySelectorAll('.option-btn');
     allBtns.forEach(btn => btn.disabled = true);
 
-    if (userAns === correctAns) {
+    // 現在是 "行こう" vs "行く"，就會準確判定為不符合！
+    if (userAns === pureJapaneseAns) {
         // --- 答對 ---
         score += POINTS_PER_Q;
         scoreText.innerText = `得分: ${score}`;
         selectedOption.classList.add('correct');
 
-        // ★ 若是複習模式答對 -> 從錯題本移除
         if (isReviewMode) {
             savedMistakes = savedMistakes.filter(item => item.q !== currentQ.q);
             localStorage.setItem('my_mistakes', JSON.stringify(savedMistakes));
-            console.log("已從錯題本移除:", currentQ.q);
         }
-
     } else {
         // --- 答錯 ---
         selectedOption.classList.add('wrong');
         allBtns.forEach(btn => {
-            if (btn.innerText === correctAns) btn.classList.add('correct');
+            // 這裡也要用切出來的純日文來幫正確按鈕上色
+            if (btn.innerText === pureJapaneseAns) {
+                btn.classList.add('correct');
+            }
         });
 
-        // ★ 紀錄錯題 (存整題資料)
+        // 紀錄錯題
         let isExist = wrongAnswers.some(q => q.q === currentQ.q);
         if (!isExist) {
             let wrongQ = { ...currentQ }; 

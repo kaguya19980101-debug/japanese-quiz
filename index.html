@@ -1,24 +1,37 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>日文大會考</title>
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
     <div class="container">
         <div id="start-screen">
             <h1>🇯🇵 日文單字測驗</h1>
             <p>共 20 題，滿分 100 分</p>
-            
+
             <input type="text" id="username" placeholder="請輸入你的名字/暱稱" class="name-input">
-            <br> 
+
+            <div style="margin: 15px 0;">
+                <select id="level-select" class="name-input" style="width: 70%;">
+                    <option value="ALL">全部等級混合</option>
+                    <option value="N5">N5 (基礎入門)</option>
+                    <option value="N4">N4 (日常銜接)</option>
+                    <option value="N3">N3 (進階日文)</option>
+                    <option value="N2">N2 (商務流利)</option>
+                    <option value="N1">N1 (專業職人)</option>
+                </select>
+            </div>
+
             <button id="start-btn" class="btn">開始遊戲</button>
-  	    <br> 
+            <br>
             <button id="review-btn" class="btn hide" style="background-color: #dc3545; margin-top: 15px;">
-    		🔥 挑戰歷史錯題 (<span id="wrong-count">0</span>)
+                🔥 挑戰歷史錯題 (<span id="wrong-count">0</span>)
             </button>
         </div>
 
@@ -27,11 +40,11 @@
                 <span id="progress-text">第 1 / 20 題</span>
                 <span id="score-text">得分: 0</span>
             </div>
-            
+
             <div class="card">
                 <h2 id="question">題目會顯示在這裡</h2>
                 <div id="answer-buttons" class="btn-grid">
-                    </div>
+                </div>
             </div>
 
             <button id="submit-btn" class="btn action-btn" disabled>確認送出</button>
@@ -43,16 +56,15 @@
             <div class="final-score" id="final-score">0 分</div>
 
             <div id="perfect-score-img" class="hide" style="margin: 20px 0;">
-                <img src="https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif" 
-                     alt="Good Job" 
-                     style="width: 100%; max-width: 300px; border-radius: 10px;">
+                <img src="https://media.giphy.com/media/11sBLVxNs7v6WA/giphy.gif" alt="Good Job"
+                    style="width: 100%; max-width: 300px; border-radius: 10px;">
                 <p style="color: #28a745; font-weight: bold; font-size: 1.2rem;">太強了！全部答對！🎉</p>
             </div>
 
             <div id="review-container" class="hide">
                 <h3 style="color: #555;">🧐 錯題檢討</h3>
                 <ul id="review-list">
-                    </ul>
+                </ul>
             </div>
 
             <button id="restart-btn" class="btn">重新開始</button>
@@ -62,4 +74,5 @@
     <script src="questions.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>

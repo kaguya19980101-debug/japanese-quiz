@@ -143,3 +143,7 @@ body {
     color: #28a745; /* 綠色 */
     font-weight: bold;
 }
+/* 套用到全域或是特定的按鈕上 */
+button, .option-btn, .btn, .container {
+    touch-action: manipulation; 
+}

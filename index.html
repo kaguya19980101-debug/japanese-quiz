@@ -44,6 +44,28 @@
                     <label class="field-label" for="username">你的名字</label>
                     <input type="text" id="username" class="name-input" placeholder="輸入名字或暱稱" maxlength="30" autocomplete="nickname">
 
+                    <div class="settings-summary">
+                        <div class="settings-summary-copy">
+                            <span class="field-label">目前練習設定</span>
+                            <strong id="settings-summary">N5 入門</strong>
+                            <small id="topic-selection-summary">載入主題中…</small>
+                        </div>
+                        <button id="open-settings" class="settings-open-btn" type="button" aria-haspopup="dialog" aria-controls="settings-dialog">⚙ 測驗設定</button>
+                    </div>
+
+                    <button id="start-btn" class="button button-primary" type="button">開始挑戰 <span aria-hidden="true">→</span></button>
+                    <button id="review-btn" class="button button-secondary hide" type="button">複習歷史錯題 <span id="wrong-count" class="count-badge">0</span></button>
+                    <p id="start-error" class="form-error hide" role="alert">先輸入名字，再開始挑戰喔！</p>
+                </div>
+            </section>
+
+
+            <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
+                <div class="settings-dialog-header">
+                    <div><p class="eyebrow">YOUR PRACTICE</p><h2 id="settings-title">測驗設定</h2></div>
+                    <button id="close-settings" class="settings-close-btn" type="button" aria-label="關閉設定">×</button>
+                </div>
+                <div class="settings-dialog-body">
                     <fieldset class="level-fieldset">
                         <legend class="field-label">選擇挑戰等級</legend>
                         <div class="level-grid">
@@ -60,7 +82,7 @@
 
                     <fieldset class="topic-fieldset">
                         <legend class="field-label">選擇練習主題 <span class="field-hint">可複選</span></legend>
-                        <div class="topic-actions"><button id="select-all-topics" type="button">全選主題</button><span id="topic-selection-summary" aria-live="polite">載入主題中…</span></div>
+                        <div class="topic-actions"><button id="select-all-topics" type="button">全選主題</button><span id="settings-count" aria-live="polite">載入主題中…</span></div>
                         <div class="topic-section" id="n5-topic-section">
                             <div class="topic-section-heading"><strong>N5 基礎主題</strong><span>選 N5 或 N4 都會考</span></div>
                             <div id="n5-topic-grid" class="topic-grid"></div>
@@ -71,12 +93,13 @@
                         </div>
                     </fieldset>
 
-                    <button id="start-btn" class="button button-primary" type="button">開始挑戰 <span aria-hidden="true">→</span></button>
-                    <button id="review-btn" class="button button-secondary hide" type="button">複習歷史錯題 <span id="wrong-count" class="count-badge">0</span></button>
-                    <p id="start-error" class="form-error hide" role="alert">先輸入名字，再開始挑戰喔！</p>
                     <p id="topic-error" class="form-error hide" role="alert">請至少勾選一個主題。</p>
                 </div>
-            </section>
+                <div class="settings-dialog-footer">
+                    <button id="cancel-settings" class="button button-secondary" type="button">取消</button>
+                    <button id="save-settings" class="button button-primary" type="button">完成設定</button>
+                </div>
+            </dialog>
 
             <section id="game-screen" class="screen game-screen hide" aria-labelledby="question">
                 <div class="game-topline">
@@ -95,7 +118,6 @@
                     <div class="question-heading"><span class="question-icon" aria-hidden="true">文</span><span>選出正確答案</span></div>
                     <h2 id="question">題目會顯示在這裡</h2>
                     <div id="answer-buttons" class="answer-grid" role="group" aria-label="答案選項"></div>
-                    <div id="answer-feedback" class="answer-feedback hide" role="status" aria-live="polite"></div>
                 </div>
 
                 <button id="submit-btn" class="button button-primary" type="button" disabled>確認答案</button>
@@ -121,6 +143,8 @@
                 <div id="perfect-score-img" class="perfect-message hide">全部答對，太厲害了！ ✨</div>
                 <button id="restart-btn" class="button button-primary" type="button">返回首頁 <span aria-hidden="true">→</span></button>
             </section>
+
+            <div id="answer-feedback" class="answer-feedback hide" role="status" aria-live="polite"></div>
 
             <footer class="app-footer"><span>一題一題，慢慢變厲害。</span><span>がんばってね ✦</span></footer>
         </div>

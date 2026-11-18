@@ -27,6 +27,7 @@ let selectedOption = null;
 let currentUserName = '';
 let wrongAnswers = [];
 let isReviewMode = false;
+let settingsSnapshot = null;
 
 function loadMistakes() {
     try {
@@ -129,9 +130,42 @@ function updateTopicSelection() {
     const level = currentLevel();
     $('n4-topic-section').classList.toggle('hide', level === 'N5');
     const available = eligibleQuestions(level, selected).length;
-    $('topic-selection-summary').textContent = `已選 ${selected.size} 個主題，可抽 ${available} 題`;
+    $('settings-count').textContent = `已選 ${selected.size} 個主題，可抽 ${available} 題`;
     $('topic-error').classList.toggle('hide', selected.size > 0);
+}
+
+function updateSettingsSummary() {
+    const selected = selectedTopics();
+    const available = eligibleQuestions(currentLevel(), selected).length;
+    $('settings-summary').textContent = currentLevel() === 'N4' ? 'N4 挑戰（含 N5）' : 'N5 入門';
+    $('topic-selection-summary').textContent = `${selected.size} 個主題・題庫 ${available} 題`;
     updateReviewButton();
+}
+
+function openSettings() {
+    settingsSnapshot = {
+        level: currentLevel(),
+        topics: new Set([...document.querySelectorAll('input[name="topic"]:checked')].map(input => input.value))
+    };
+    updateTopicSelection();
+    $('settings-dialog').showModal();
+}
+
+function closeSettings(save) {
+    if (save && selectedTopics().size === 0) {
+        $('topic-error').classList.remove('hide');
+        return;
+    }
+    if (!save && settingsSnapshot) {
+        document.querySelector(`input[name="level"][value="${settingsSnapshot.level}"]`).checked = true;
+        document.querySelectorAll('input[name="topic"]').forEach(input => {
+            input.checked = settingsSnapshot.topics.has(input.value);
+        });
+    }
+    updateTopicSelection();
+    if (save) updateSettingsSummary();
+    $('settings-dialog').close();
+    settingsSnapshot = null;
 }
 
 function getName() {
@@ -144,7 +178,7 @@ function getName() {
 
 function startGame() {
     const topics = selectedTopics();
-    if (!topics.size) { $('topic-error').classList.remove('hide'); return; }
+    if (!topics.size) { openSettings(); $('topic-error').classList.remove('hide'); return; }
     if (!getName()) return;
     const selectedLevel = currentLevel();
     const filteredBank = eligibleQuestions(selectedLevel, topics);
@@ -277,6 +311,7 @@ function addReviewLine(item, className, label, value) {
 }
 
 function showResults() {
+    $('answer-feedback').classList.add('hide');
     const count = shuffledQuestions.length;
     const fullScore = count * POINTS_PER_Q;
     const correctCount = count - wrongAnswers.length;
@@ -327,6 +362,14 @@ $('restart-btn').addEventListener('click', () => { updateReviewButton(); showScr
 usernameInput.addEventListener('input', () => $('start-error').classList.add('hide'));
 usernameInput.addEventListener('keydown', event => { if (event.key === 'Enter') startGame(); });
 document.querySelectorAll('input[name="level"]').forEach(input => input.addEventListener('change', updateTopicSelection));
+$('open-settings').addEventListener('click', openSettings);
+$('save-settings').addEventListener('click', () => closeSettings(true));
+$('cancel-settings').addEventListener('click', () => closeSettings(false));
+$('close-settings').addEventListener('click', () => closeSettings(false));
+$('settings-dialog').addEventListener('cancel', event => { event.preventDefault(); closeSettings(false); });
+$('settings-dialog').addEventListener('click', event => {
+    if (event.target === $('settings-dialog')) closeSettings(false);
+});
 $('select-all-topics').addEventListener('click', () => {
     document.querySelectorAll('input[name="topic"]').forEach(input => {
         if (currentLevel() === 'N4' || input.dataset.level === 'N5') input.checked = true;
@@ -335,3 +378,4 @@ $('select-all-topics').addEventListener('click', () => {
 });
 renderTopics();
 updateTopicSelection();
+updateSettingsSummary();

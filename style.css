@@ -16,6 +16,7 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; background: #e9f6fb; }
+body:has(.settings-dialog[open]) { overflow: hidden; }
 button, input { font: inherit; }
 button { touch-action: manipulation; }
 .hide { display: none !important; }
@@ -58,6 +59,25 @@ h1 { margin: 0; font-size: clamp(31px, 7vw, 44px); line-height: 1.3; letter-spac
 .name-input { display: block; width: 100%; height: 51px; margin-bottom: 22px; padding: 0 16px; border: 1.5px solid #dbe8eb; border-radius: 13px; outline: none; background: #fff; color: var(--ink); font-size: 14px; transition: border-color .2s, box-shadow .2s; }
 .name-input::placeholder { color: #a5b1b9; }
 .name-input:focus { border-color: var(--blue); box-shadow: 0 0 0 4px rgba(82,154,192,.14); }
+.settings-summary { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin: 0 0 22px; padding: 15px 16px; border: 1.5px solid #d9e9ef; border-radius: 15px; background: #f2f9fc; }
+.settings-summary-copy { display: grid; gap: 4px; min-width: 0; }
+.settings-summary-copy .field-label { margin: 0; color: var(--muted); font-size: 11px; }
+.settings-summary-copy strong { color: var(--ink); font-size: 15px; }
+.settings-summary-copy small { color: var(--muted); font-size: 11px; }
+.settings-open-btn { flex: 0 0 auto; min-height: 38px; padding: 0 13px; border: 1px solid #bedde8; border-radius: 10px; background: white; color: var(--blue-deep); cursor: pointer; font-size: 12px; font-weight: 700; }
+.settings-open-btn:hover { background: #e7f5fa; }
+.settings-open-btn:focus-visible, .settings-close-btn:focus-visible { outline: 3px solid #a4d3e6; outline-offset: 2px; }
+.settings-dialog { width: min(590px, calc(100vw - 28px)); max-height: min(760px, calc(100dvh - 28px)); padding: 0; border: 1px solid #e4ecee; border-radius: 23px; background: var(--cream); color: var(--ink); box-shadow: 0 25px 80px rgba(26,56,73,.28); }
+.settings-dialog[open] { display: flex; flex-direction: column; }
+.settings-dialog::backdrop { background: rgba(27,48,61,.48); backdrop-filter: blur(3px); }
+.settings-dialog-header { display: flex; flex: 0 0 auto; justify-content: space-between; align-items: start; padding: 22px 25px 17px; border-bottom: 1px solid var(--line); }
+.settings-dialog-header .eyebrow { margin-bottom: 3px; }
+.settings-dialog-header h2 { margin: 0; font-size: 22px; }
+.settings-close-btn { width: 34px; height: 34px; border: 0; border-radius: 9px; background: #edf5f7; color: var(--muted); cursor: pointer; font-size: 24px; line-height: 1; }
+.settings-dialog-body { min-height: 0; overflow-y: auto; padding: 22px 25px 15px; }
+.settings-dialog-footer { display: flex; flex: 0 0 auto; gap: 10px; padding: 15px 25px 20px; border-top: 1px solid var(--line); background: var(--cream); }
+.settings-dialog-footer .button { min-height: 46px; }
+.settings-dialog-footer .button-secondary { margin-top: 0; }
 .level-fieldset { margin: 0 0 23px; padding: 0; border: 0; }
 .level-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 9px; }
 .level-choice { cursor: pointer; }
@@ -123,7 +143,7 @@ h1 { margin: 0; font-size: clamp(31px, 7vw, 44px); line-height: 1.3; letter-spac
 .option-btn.correct .option-letter { color: var(--green); border-color: #a8d4c5; }
 .option-btn.wrong .option-letter { color: #ae655a; border-color: #efb8ae; }
 .option-label { font-family: 'Noto Sans JP', 'Noto Sans TC', sans-serif; font-size: 14px; line-height: 1.5; }
-.answer-feedback { margin-top: 18px; padding: 12px 14px; border-radius: 10px; font-size: 13px; line-height: 1.6; }
+.answer-feedback { position: fixed; z-index: 30; top: max(12px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: min(500px, calc(100vw - 28px)); max-height: 130px; overflow-y: auto; padding: 13px 18px; border: 1px solid currentColor; border-radius: 13px; box-shadow: 0 12px 30px rgba(30,57,70,.18); text-align: center; font-size: 13px; font-weight: 700; line-height: 1.6; }
 .answer-feedback.is-correct { color: #286f5b; background: #e8f6f0; }
 .answer-feedback.is-wrong { color: #a35045; background: #fff0ed; }
 
@@ -158,6 +178,10 @@ h1 { margin: 0; font-size: clamp(31px, 7vw, 44px); line-height: 1.3; letter-spac
     .screen { padding: 27px 22px 34px; }
     .hero-illustration { margin-top: 4px; }
     .info-strip { gap: 9px; padding: 10px 12px; font-size: 10px; }
+    .settings-dialog { width: calc(100vw - 18px); max-height: calc(100dvh - 18px); border-radius: 20px; }
+    .settings-dialog-header { padding: 18px 19px 14px; }
+    .settings-dialog-body { padding: 18px 19px 12px; }
+    .settings-dialog-footer { padding: 12px 19px 17px; }
     .answer-grid { grid-template-columns: 1fr; gap: 9px; }
     .option-btn { min-height: 57px; }
     .question-card { margin-top: 18px; }

@@ -30,14 +30,14 @@
                 </div>
                 <p class="eyebrow">A LITTLE PRACTICE, EVERY DAY</p>
                 <h1 id="start-title">日文大會考<span class="title-dot">。</span></h1>
-                <p class="subtitle">挑個等級，來一場輕鬆的日文練習吧！</p>
+                <p class="subtitle">挑個等級和喜歡的主題，來一場輕鬆的日文練習吧！</p>
 
                 <div class="info-strip" aria-label="測驗資訊">
-                    <span><strong>20</strong> 題隨機出題</span>
+                    <span>每次最多 <strong>20</strong> 題</span>
                     <span class="info-divider" aria-hidden="true"></span>
                     <span>每題 <strong>5</strong> 分</span>
                     <span class="info-divider" aria-hidden="true"></span>
-                    <span>滿分 <strong>100</strong> 分</span>
+                    <span>依選擇主題抽題</span>
                 </div>
 
                 <div class="setup-panel">
@@ -48,23 +48,33 @@
                         <legend class="field-label">選擇挑戰等級</legend>
                         <div class="level-grid">
                             <label class="level-choice">
-                                <input type="radio" name="level" value="ALL" checked>
-                                <span class="level-card"><strong>混合</strong><small>N4 + N3</small></span>
+                                <input type="radio" name="level" value="N5" checked>
+                                <span class="level-card"><strong>N5 入門</strong><small>只考 N5 題目</small></span>
                             </label>
                             <label class="level-choice">
                                 <input type="radio" name="level" value="N4">
-                                <span class="level-card"><strong>N4</strong><small>基礎練習</small></span>
+                                <span class="level-card"><strong>N4 挑戰</strong><small>N5 + N4 都會考</small></span>
                             </label>
-                            <label class="level-choice">
-                                <input type="radio" name="level" value="N3">
-                                <span class="level-card"><strong>N3</strong><small>進階挑戰</small></span>
-                            </label>
+                        </div>
+                    </fieldset>
+
+                    <fieldset class="topic-fieldset">
+                        <legend class="field-label">選擇練習主題 <span class="field-hint">可複選</span></legend>
+                        <div class="topic-actions"><button id="select-all-topics" type="button">全選主題</button><span id="topic-selection-summary" aria-live="polite">載入主題中…</span></div>
+                        <div class="topic-section" id="n5-topic-section">
+                            <div class="topic-section-heading"><strong>N5 基礎主題</strong><span>選 N5 或 N4 都會考</span></div>
+                            <div id="n5-topic-grid" class="topic-grid"></div>
+                        </div>
+                        <div class="topic-section" id="n4-topic-section">
+                            <div class="topic-section-heading"><strong>N4 延伸主題</strong><span>選 N4 時才會出題</span></div>
+                            <div id="n4-topic-grid" class="topic-grid"></div>
                         </div>
                     </fieldset>
 
                     <button id="start-btn" class="button button-primary" type="button">開始挑戰 <span aria-hidden="true">→</span></button>
                     <button id="review-btn" class="button button-secondary hide" type="button">複習歷史錯題 <span id="wrong-count" class="count-badge">0</span></button>
                     <p id="start-error" class="form-error hide" role="alert">先輸入名字，再開始挑戰喔！</p>
+                    <p id="topic-error" class="form-error hide" role="alert">請至少勾選一個主題。</p>
                 </div>
             </section>
 

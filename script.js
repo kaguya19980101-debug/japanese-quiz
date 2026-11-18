@@ -1,6 +1,23 @@
 const TOTAL_QUESTIONS = 20;
 const POINTS_PER_Q = 5;
 const STORAGE_KEY = 'my_mistakes';
+const ACTIVE_LEVELS = new Set(['N5', 'N4']);
+const TOPIC_DEFINITIONS = [
+    { id: 'n5_numbers', level: 'N5', name: '數字' },
+    { id: 'n5_greetings', level: 'N5', name: '問候' },
+    { id: 'n5_time', level: 'N5', name: '時間' },
+    { id: 'n5_people', level: 'N5', name: '人物' },
+    { id: 'n5_directions', level: 'N5', name: '方位' },
+    { id: 'n5_actions', level: 'N5', name: '基本動作' },
+    { id: 'n5_animals', level: 'N5', name: '動物' },
+    { id: 'n5_colors', level: 'N5', name: '顏色' },
+    { id: 'n5_nature', level: 'N5', name: '季節與自然' },
+    { id: 'n4_food', level: 'N4', name: '食物' },
+    { id: 'n4_life', level: 'N4', name: '生活' },
+    { id: 'n4_travel', level: 'N4', name: '交通與場所' },
+    { id: 'n4_descriptions', level: 'N4', name: '形容與感受' }
+];
+const TOPIC_NAMES = Object.fromEntries(TOPIC_DEFINITIONS.map(topic => [topic.id, topic.name]));
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzQsKfyNKpWFdEWMl-tfgqA_Zd_tzOcW1BtjyzXUzmGBJoylK3gEO4HLmNWXfpWMfIu8w/exec';
 
 let shuffledQuestions = [];
@@ -49,9 +66,72 @@ function showScreen(screen) {
     window.scrollTo(0, 0);
 }
 
+function currentLevel() {
+    return document.querySelector('input[name="level"]:checked').value;
+}
+
+function renderTopics() {
+    for (const topic of TOPIC_DEFINITIONS) {
+        const label = document.createElement('label');
+        label.className = 'topic-choice';
+        const input = document.createElement('input');
+        input.type = 'checkbox';
+        input.name = 'topic';
+        input.value = topic.id;
+        input.dataset.level = topic.level;
+        input.checked = true;
+        input.addEventListener('change', updateTopicSelection);
+        const card = document.createElement('span');
+        card.className = 'topic-card';
+        const check = document.createElement('span');
+        check.className = 'topic-check';
+        check.setAttribute('aria-hidden', 'true');
+        check.textContent = '✓';
+        const name = document.createElement('strong');
+        name.className = 'topic-name';
+        name.textContent = topic.name;
+        const count = document.createElement('span');
+        count.className = 'topic-count';
+        count.textContent = `${questionBank.filter(question => question.topic === topic.id).length} 題`;
+        card.append(check, name, count);
+        label.append(input, card);
+        $(topic.level === 'N5' ? 'n5-topic-grid' : 'n4-topic-grid').appendChild(label);
+    }
+}
+
+function selectedTopics(level = currentLevel()) {
+    return new Set([...document.querySelectorAll('input[name="topic"]:checked')]
+        .filter(input => level === 'N4' || input.dataset.level === 'N5')
+        .map(input => input.value));
+}
+
+function eligibleQuestions(level, topics) {
+    return questionBank.filter(question =>
+        (level === 'N4' ? ACTIVE_LEVELS.has(question.nLevel) : question.nLevel === 'N5') &&
+        topics.has(question.topic)
+    );
+}
+
+function reviewQuestions() {
+    const available = new Map(eligibleQuestions(currentLevel(), selectedTopics()).map(question => [question.q, question]));
+    return savedMistakes.filter(item => available.has(item.q))
+        .map(item => ({ ...available.get(item.q), userWrongAns: item.userWrongAns }));
+}
+
 function updateReviewButton() {
-    $('review-btn').classList.toggle('hide', savedMistakes.length === 0);
-    $('wrong-count').textContent = savedMistakes.length;
+    const count = reviewQuestions().length;
+    $('review-btn').classList.toggle('hide', count === 0);
+    $('wrong-count').textContent = count;
+}
+
+function updateTopicSelection() {
+    const selected = selectedTopics();
+    const level = currentLevel();
+    $('n4-topic-section').classList.toggle('hide', level === 'N5');
+    const available = eligibleQuestions(level, selected).length;
+    $('topic-selection-summary').textContent = `已選 ${selected.size} 個主題，可抽 ${available} 題`;
+    $('topic-error').classList.toggle('hide', selected.size > 0);
+    updateReviewButton();
 }
 
 function getName() {
@@ -63,24 +143,26 @@ function getName() {
 }
 
 function startGame() {
+    const topics = selectedTopics();
+    if (!topics.size) { $('topic-error').classList.remove('hide'); return; }
     if (!getName()) return;
-    const selectedLevel = document.querySelector('input[name="level"]:checked').value;
-    const filteredBank = selectedLevel === 'ALL'
-        ? questionBank
-        : questionBank.filter(question => question.nLevel === selectedLevel);
+    const selectedLevel = currentLevel();
+    const filteredBank = eligibleQuestions(selectedLevel, topics);
     if (!filteredBank.length) return;
 
     isReviewMode = false;
     shuffledQuestions = shuffle(filteredBank).slice(0, TOTAL_QUESTIONS);
-    $('mode-label').textContent = selectedLevel === 'ALL' ? '混合挑戰' : `${selectedLevel} 挑戰`;
+    const topicLabel = topics.size === 1 ? TOPIC_NAMES[[...topics][0]] : `${topics.size} 主題`;
+    $('mode-label').textContent = `${selectedLevel === 'N4' ? 'N5 + N4' : 'N5'}｜${topicLabel}`;
     initGame();
 }
 
 function startReviewMode() {
     if (!getName()) return;
-    if (!savedMistakes.length) return;
+    const activeMistakes = reviewQuestions();
+    if (!activeMistakes.length) return;
     isReviewMode = true;
-    shuffledQuestions = shuffle(savedMistakes);
+    shuffledQuestions = shuffle(activeMistakes);
     $('mode-label').textContent = '錯題複習';
     initGame();
 }
@@ -244,4 +326,12 @@ nextBtn.addEventListener('click', nextQuestion);
 $('restart-btn').addEventListener('click', () => { updateReviewButton(); showScreen(startScreen); });
 usernameInput.addEventListener('input', () => $('start-error').classList.add('hide'));
 usernameInput.addEventListener('keydown', event => { if (event.key === 'Enter') startGame(); });
-updateReviewButton();
+document.querySelectorAll('input[name="level"]').forEach(input => input.addEventListener('change', updateTopicSelection));
+$('select-all-topics').addEventListener('click', () => {
+    document.querySelectorAll('input[name="topic"]').forEach(input => {
+        if (currentLevel() === 'N4' || input.dataset.level === 'N5') input.checked = true;
+    });
+    updateTopicSelection();
+});
+renderTopics();
+updateTopicSelection();

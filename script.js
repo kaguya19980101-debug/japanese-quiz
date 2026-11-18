@@ -1,317 +1,247 @@
-// --- 變數設定 ---
-const TOTAL_QUESTIONS = 20; // 總題數 
-const POINTS_PER_Q = 5;     // 一題幾分
+const TOTAL_QUESTIONS = 20;
+const POINTS_PER_Q = 5;
+const STORAGE_KEY = 'my_mistakes';
+const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzQsKfyNKpWFdEWMl-tfgqA_Zd_tzOcW1BtjyzXUzmGBJoylK3gEO4HLmNWXfpWMfIu8w/exec';
 
-let shuffledQuestions = []; // 洗牌後的題庫
+let shuffledQuestions = [];
 let currentQuestionIndex = 0;
 let score = 0;
-let selectedOption = null; // 使用者目前選了哪個答案
+let selectedOption = null;
+let currentUserName = '';
+let wrongAnswers = [];
+let isReviewMode = false;
 
-let currentUserName = ""; // 用來存使用者的名字
-let wrongAnswers = []; // 用來存「這一輪」答錯的題目
-
-let isReviewMode = false; // 判斷現在是不是在複習
-let savedMistakes = JSON.parse(localStorage.getItem('my_mistakes')) || []; // 讀取歷史錯題
-
-// --- DOM 抓取元素 ---
-const usernameInput = document.getElementById('username'); 
-const startScreen = document.getElementById('start-screen');
-const gameScreen = document.getElementById('game-screen');
-const resultScreen = document.getElementById('result-screen');
-
-const questionEl = document.getElementById('question');
-const answerButtonsEl = document.getElementById('answer-buttons');
-const progressText = document.getElementById('progress-text');
-const scoreText = document.getElementById('score-text');
-const finalScoreEl = document.getElementById('final-score');
-
-const startBtn = document.getElementById('start-btn');
-const reviewBtn = document.getElementById('review-btn'); // 紅色按鈕
-const wrongCountSpan = document.getElementById('wrong-count'); // 紅色按鈕上的數字
-const submitBtn = document.getElementById('submit-btn');
-const nextBtn = document.getElementById('next-btn');
-const restartBtn = document.getElementById('restart-btn');
-
-// --- 初始化檢查 (網頁載入時執行) ---
-if (savedMistakes.length > 0) {
-    reviewBtn.classList.remove('hide');
-    wrongCountSpan.innerText = savedMistakes.length;
+function loadMistakes() {
+    try {
+        const value = JSON.parse(localStorage.getItem(STORAGE_KEY));
+        return Array.isArray(value) ? value : [];
+    } catch (_) {
+        return [];
+    }
 }
 
-// --- 事件監聽 ---
-startBtn.addEventListener('click', startGame);
-reviewBtn.addEventListener('click', startReviewMode); // ★ 修復：加入複習按鈕監聽
-submitBtn.addEventListener('click', submitAnswer);
-nextBtn.onclick = () => {
-    currentQuestionIndex++;
-    setNextQuestion();
-};
-restartBtn.addEventListener('click', goHome); // ★ 修復：改為呼叫 goHome 回首頁
+let savedMistakes = loadMistakes();
+const $ = id => document.getElementById(id);
+const startScreen = $('start-screen');
+const gameScreen = $('game-screen');
+const resultScreen = $('result-screen');
+const usernameInput = $('username');
+const answerButtonsEl = $('answer-buttons');
+const submitBtn = $('submit-btn');
+const nextBtn = $('next-btn');
 
-// --- 函數區 ---
+function saveMistakes() {
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(savedMistakes)); }
+    catch (error) { console.warn('錯題暫時無法儲存', error); }
+}
 
-// 1. 普通模式開始
+function shuffle(items) {
+    const array = [...items];
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function showScreen(screen) {
+    [startScreen, gameScreen, resultScreen].forEach(element => element.classList.toggle('hide', element !== screen));
+    window.scrollTo(0, 0);
+}
+
+function updateReviewButton() {
+    $('review-btn').classList.toggle('hide', savedMistakes.length === 0);
+    $('wrong-count').textContent = savedMistakes.length;
+}
+
+function getName() {
+    const name = usernameInput.value.trim();
+    $('start-error').classList.toggle('hide', !!name);
+    if (!name) { usernameInput.focus(); return null; }
+    currentUserName = name;
+    return name;
+}
+
 function startGame() {
-    const nameValue = usernameInput.value.trim();
-    // 取得選取的等級
-    const selectedLevel = document.getElementById('level-select').value;
+    if (!getName()) return;
+    const selectedLevel = document.querySelector('input[name="level"]:checked').value;
+    const filteredBank = selectedLevel === 'ALL'
+        ? questionBank
+        : questionBank.filter(question => question.nLevel === selectedLevel);
+    if (!filteredBank.length) return;
 
-    if (nameValue === "") {
-        alert("請輸入名字才能開始喔！");
-        return;
-    }
-    currentUserName = nameValue;
     isReviewMode = false;
-
-    // --- 關鍵過濾邏輯 ---
-    let filteredBank = [];
-    if (selectedLevel === "ALL") {
-        filteredBank = [...questionBank]; // 全部
-    } else {
-        // 根據題目裡的 nLevel 標記過濾
-        filteredBank = questionBank.filter(q => q.nLevel === selectedLevel);
-    }
-
-    if (filteredBank.length === 0) {
-        alert(`目前題庫中還沒有 ${selectedLevel} 的題目，請先選擇其他等級！`);
-        return;
-    }
-
-    // 洗牌並取出前 20 題 (若題目不夠 20 題則取最大數量)
-    const count = Math.min(TOTAL_QUESTIONS, filteredBank.length);
-    shuffledQuestions = filteredBank.sort(() => Math.random() - 0.5).slice(0, count);
-
-    initGameUI();
+    shuffledQuestions = shuffle(filteredBank).slice(0, TOTAL_QUESTIONS);
+    $('mode-label').textContent = selectedLevel === 'ALL' ? '混合挑戰' : `${selectedLevel} 挑戰`;
+    initGame();
 }
 
-// 2. 複習模式開始
 function startReviewMode() {
-    const nameValue = usernameInput.value.trim();
-    if (nameValue === "") {
-        alert("請輸入名字才能開始喔！");
-        return;
-    }
-    currentUserName = nameValue;
-    isReviewMode = true; // ★ 設定為複習模式
-
-    // 題庫來源改成「錯題本」
-    shuffledQuestions = [...savedMistakes].sort(() => Math.random() - 0.5);
-
-    initGameUI();
+    if (!getName()) return;
+    if (!savedMistakes.length) return;
+    isReviewMode = true;
+    shuffledQuestions = shuffle(savedMistakes);
+    $('mode-label').textContent = '錯題複習';
+    initGame();
 }
 
-// 3. 共用介面初始化
-function initGameUI() {
-    // 清空變數
+function initGame() {
     score = 0;
     currentQuestionIndex = 0;
-    wrongAnswers = []; 
-    scoreText.innerText = `得分: 0`;
-
-    // 隱藏檢討相關區塊
-    document.getElementById('perfect-score-img').classList.add('hide');
-    document.getElementById('review-container').classList.add('hide');
-
-    // 切換畫面
-    startScreen.classList.add('hide');
-    resultScreen.classList.add('hide');
-    gameScreen.classList.remove('hide');
-
-    // 重置按鈕
-    nextBtn.innerText = "下一題"; 
-    nextBtn.onclick = () => {
-        currentQuestionIndex++;
-        setNextQuestion();
-    };
-
-    setNextQuestion();
+    wrongAnswers = [];
+    $('score-text').textContent = '目前 0 分';
+    $('perfect-score-img').classList.add('hide');
+    $('review-container').classList.add('hide');
+    showScreen(gameScreen);
+    showQuestion();
 }
 
-// 4. 回到首頁 (Restart 按鈕用)
-function goHome() {
-    resultScreen.classList.add('hide');
-    gameScreen.classList.add('hide');
-    startScreen.classList.remove('hide');
+function showQuestion() {
+    const question = shuffledQuestions[currentQuestionIndex];
+    const count = shuffledQuestions.length;
+    const number = currentQuestionIndex + 1;
+    selectedOption = null;
+    answerButtonsEl.replaceChildren();
+    $('question').textContent = question.q;
+    $('progress-text').textContent = `第 ${number} / ${count} 題`;
+    $('progress-percent').textContent = `${Math.round(number / count * 100)}%`;
+    $('progress-fill').style.width = `${number / count * 100}%`;
+    $('progress-track').setAttribute('aria-valuemax', count);
+    $('progress-track').setAttribute('aria-valuenow', number);
+    $('answer-feedback').className = 'answer-feedback hide';
+    $('answer-feedback').textContent = '';
+    submitBtn.disabled = true;
+    submitBtn.classList.remove('hide');
+    nextBtn.classList.add('hide');
 
-    // 重新檢查錯題數量 (因為剛剛可能消滅了一些錯題)
-    if (savedMistakes.length > 0) {
-        reviewBtn.classList.remove('hide');
-        wrongCountSpan.innerText = savedMistakes.length;
-    } else {
-        reviewBtn.classList.add('hide');
-    }
-}
-
-function setNextQuestion() {
-    resetState();
-    showQuestion(shuffledQuestions[currentQuestionIndex]);
-}
-
-function showQuestion(questionData) {
-    progressText.innerText = `第 ${currentQuestionIndex + 1} / ${shuffledQuestions.length} 題`;
-    questionEl.innerText = questionData.q;
-
-    // 洗牌選項
-    let randomOptions = [...questionData.options].sort(() => Math.random() - 0.5);
-
-    randomOptions.forEach(option => {
+    shuffle(question.options).forEach((option, index) => {
         const button = document.createElement('button');
-        button.innerText = option;
-        button.classList.add('option-btn');
+        button.type = 'button';
+        button.className = 'option-btn';
+        button.dataset.answer = option;
+        const letter = document.createElement('span');
+        letter.className = 'option-letter';
+        letter.setAttribute('aria-hidden', 'true');
+        letter.textContent = 'ABCD'[index] || String(index + 1);
+        const label = document.createElement('span');
+        label.className = 'option-label';
+        label.textContent = option;
+        button.append(letter, label);
         button.addEventListener('click', () => selectOption(button));
         answerButtonsEl.appendChild(button);
     });
 }
 
-function resetState() {
-    nextBtn.classList.add('hide');
-    submitBtn.classList.remove('hide');
-    submitBtn.disabled = true;
-    selectedOption = null;
-    
-    while (answerButtonsEl.firstChild) {
-        answerButtonsEl.removeChild(answerButtonsEl.firstChild);
-    }
-}
-
-function selectOption(btn) {
-    const allBtns = document.querySelectorAll('.option-btn');
-    allBtns.forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    selectedOption = btn;
+function selectOption(button) {
+    if (button.disabled) return;
+    answerButtonsEl.querySelectorAll('.option-btn').forEach(option => option.classList.remove('selected'));
+    button.classList.add('selected');
+    selectedOption = button;
     submitBtn.disabled = false;
 }
+
 function submitAnswer() {
-    const currentQ = shuffledQuestions[currentQuestionIndex]; 
+    if (!selectedOption) return;
+    const question = shuffledQuestions[currentQuestionIndex];
+    const correctAnswer = question.answer.split('(')[0].trim();
+    const userAnswer = selectedOption.dataset.answer;
+    const correct = userAnswer === correctAnswer;
+    const feedback = $('answer-feedback');
 
-    // --- 精準比對邏輯 ---
-    // 假設 correctAns 是 "行こう (出發吧)"
-    // 用 split('(')[0] 會切出 "行こう "，再用 trim() 把空格去掉，變成 "行こう"
-    const correctAnsFull = currentQ.answer;
-    const pureJapaneseAns = correctAnsFull.split('(')[0].trim(); 
-    
-    const userAns = selectedOption.innerText; // 使用者選的，例如 "行く"
-    
-    const allBtns = document.querySelectorAll('.option-btn');
-    allBtns.forEach(btn => btn.disabled = true);
+    answerButtonsEl.querySelectorAll('.option-btn').forEach(button => {
+        button.disabled = true;
+        if (button.dataset.answer === correctAnswer) button.classList.add('correct');
+    });
+    feedback.classList.remove('hide');
+    feedback.classList.add(correct ? 'is-correct' : 'is-wrong');
 
-    // 現在是 "行こう" vs "行く"，就會準確判定為不符合！
-    if (userAns === pureJapaneseAns) {
-        // --- 答對 ---
+    if (correct) {
         score += POINTS_PER_Q;
-        scoreText.innerText = `得分: ${score}`;
-        selectedOption.classList.add('correct');
-
+        $('score-text').textContent = `目前 ${score} 分`;
+        feedback.textContent = '答對了！繼續保持 ✨';
         if (isReviewMode) {
-            savedMistakes = savedMistakes.filter(item => item.q !== currentQ.q);
-            localStorage.setItem('my_mistakes', JSON.stringify(savedMistakes));
+            savedMistakes = savedMistakes.filter(item => item.q !== question.q);
+            saveMistakes();
         }
     } else {
-        // --- 答錯 ---
         selectedOption.classList.add('wrong');
-        allBtns.forEach(btn => {
-            // 這裡也要用切出來的純日文來幫正確按鈕上色
-            if (btn.innerText === pureJapaneseAns) {
-                btn.classList.add('correct');
-            }
-        });
-
-        // 紀錄錯題
-        let isExist = wrongAnswers.some(q => q.q === currentQ.q);
-        if (!isExist) {
-            let wrongQ = { ...currentQ }; 
-            wrongQ.userWrongAns = userAns;
-            wrongAnswers.push(wrongQ);
+        feedback.textContent = `再記住一次：${question.answer}`;
+        if (!wrongAnswers.some(item => item.q === question.q)) {
+            wrongAnswers.push({ ...question, userWrongAns: userAnswer });
         }
     }
 
     submitBtn.classList.add('hide');
-    
-    if (shuffledQuestions.length > currentQuestionIndex + 1) {
-        nextBtn.classList.remove('hide');
+    nextBtn.classList.remove('hide');
+    nextBtn.innerHTML = currentQuestionIndex === shuffledQuestions.length - 1
+        ? '查看成績 <span aria-hidden="true">→</span>'
+        : '下一題 <span aria-hidden="true">→</span>';
+}
+
+function nextQuestion() {
+    if (currentQuestionIndex === shuffledQuestions.length - 1) {
+        showResults();
     } else {
-        nextBtn.innerText = "查看成績";
-        nextBtn.classList.remove('hide');
-        nextBtn.onclick = showResults; 
+        currentQuestionIndex++;
+        showQuestion();
     }
+}
+
+function addReviewLine(item, className, label, value) {
+    const element = document.createElement('span');
+    element.className = className;
+    element.textContent = `${label}${value}`;
+    item.appendChild(element);
 }
 
 function showResults() {
-    gameScreen.classList.add('hide');
-    resultScreen.classList.remove('hide');
-    
-    // 1. 處理分數與上傳
-    if (isReviewMode) {
-        finalScoreEl.innerText = "複習完成！";
-        if (score === shuffledQuestions.length * POINTS_PER_Q) {
-             finalScoreEl.innerText = "太棒了！錯題全部清除！✨";
-        }
-        console.log("複習模式：不記錄成績"); 
-    } else {
-        finalScoreEl.innerText = `${score} 分`;
-        sendDataToGoogleSheet(score);
+    const count = shuffledQuestions.length;
+    const fullScore = count * POINTS_PER_Q;
+    const correctCount = count - wrongAnswers.length;
+    $('final-score').textContent = isReviewMode ? `${correctCount} / ${count}` : score;
+    $('score-total').textContent = isReviewMode ? '題答對' : `/ ${fullScore} 分`;
+    $('correct-count').textContent = correctCount;
+    $('result-wrong-count').textContent = wrongAnswers.length;
+    $('result-message').textContent = wrongAnswers.length === 0
+        ? '完美通關！今天的努力有成果了。'
+        : `答對 ${correctCount} 題，再看看錯題就更熟悉了。`;
+
+    if (!isReviewMode) sendDataToGoogleSheet(score, fullScore);
+    if (wrongAnswers.length) {
+        const byQuestion = new Map([...savedMistakes, ...wrongAnswers].map(item => [item.q, item]));
+        savedMistakes = [...byQuestion.values()];
+        saveMistakes();
     }
 
-    // 2. 處理錯題儲存 (去重)
-    if (wrongAnswers.length > 0) {
-        let allMistakes = [...savedMistakes, ...wrongAnswers];
-        
-        let uniqueMistakes = [];
-        const map = new Map();
-        for (const item of allMistakes) {
-            if(!map.has(item.q)){
-                map.set(item.q, true);
-                uniqueMistakes.push(item);
-            }
-        }
-        
-        localStorage.setItem('my_mistakes', JSON.stringify(uniqueMistakes));
-        savedMistakes = uniqueMistakes; 
-    }
-
-    // 3. 顯示結果列表或讚讚圖
-    // 這裡邏輯：顯示「這一輪」做錯的題目
-    if (wrongAnswers.length === 0) {
-        document.getElementById('perfect-score-img').classList.remove('hide');
-        document.getElementById('review-container').classList.add('hide');
-    } else {
-        document.getElementById('perfect-score-img').classList.add('hide');
-        const reviewContainer = document.getElementById('review-container');
-        const reviewList = document.getElementById('review-list');
-        
-        reviewContainer.classList.remove('hide');
-        reviewList.innerHTML = ''; 
-
-        wrongAnswers.forEach(item => {
-            const li = document.createElement('li');
-            li.classList.add('review-item');
-            li.innerHTML = `
-                <span class="review-q">Q: ${item.q}</span>
-                <span class="review-wrong">❌ 你選: ${item.userWrongAns}</span>
-                <span class="review-correct">✅ 正解: ${item.answer}</span>
-            `;
-            reviewList.appendChild(li);
-        });
-    }
+    const reviewList = $('review-list');
+    reviewList.replaceChildren();
+    $('review-container').classList.toggle('hide', wrongAnswers.length === 0);
+    $('perfect-score-img').classList.toggle('hide', wrongAnswers.length !== 0);
+    wrongAnswers.forEach(question => {
+        const item = document.createElement('li');
+        item.className = 'review-item';
+        addReviewLine(item, 'review-q', 'Q. ', question.q);
+        addReviewLine(item, 'review-wrong', '你選：', question.userWrongAns);
+        addReviewLine(item, 'review-correct', '正解：', question.answer);
+        reviewList.appendChild(item);
+    });
+    showScreen(resultScreen);
 }
 
-function sendDataToGoogleSheet(finalScore) {
-    const scriptURL = "https://script.google.com/macros/s/AKfycbzQsKfyNKpWFdEWMl-tfgqA_Zd_tzOcW1BtjyzXUzmGBJoylK3gEO4HLmNWXfpWMfIu8w/exec"; 
-
-    let formData = new FormData();
-    formData.append('score', finalScore + " / 100"); 
+function sendDataToGoogleSheet(finalScore, fullScore) {
+    const formData = new FormData();
+    formData.append('score', `${finalScore} / ${fullScore}`);
     formData.append('time', new Date().toLocaleString());
     formData.append('name', currentUserName);
-    
-    fetch(scriptURL, {
-        method: 'POST',
-        body: formData,
-        mode: 'no-cors' 
-    })
-    .then(() => {
-        console.log("成績已成功傳送至 Google 試算表！");
-    })
-    .catch(error => {
-        console.error('傳送失敗:', error);
-    });
+    fetch(SHEET_URL, { method: 'POST', body: formData, mode: 'no-cors' })
+        .catch(error => console.error('成績傳送失敗：', error));
 }
+
+$('start-btn').addEventListener('click', startGame);
+$('review-btn').addEventListener('click', startReviewMode);
+submitBtn.addEventListener('click', submitAnswer);
+nextBtn.addEventListener('click', nextQuestion);
+$('restart-btn').addEventListener('click', () => { updateReviewButton(); showScreen(startScreen); });
+usernameInput.addEventListener('input', () => $('start-error').classList.add('hide'));
+usernameInput.addEventListener('keydown', event => { if (event.key === 'Enter') startGame(); });
+updateReviewButton();

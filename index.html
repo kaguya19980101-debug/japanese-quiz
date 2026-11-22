@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#e9f6fb">
     <title>日文大會考｜每日練習</title>
-    <link rel="stylesheet" href="style.css?v=20261122-2">
+    <link rel="stylesheet" href="style.css?v=20261122-4">
 </head>
 <body>
     <main class="app-shell">
@@ -82,6 +82,8 @@
                         <div><strong id="history-week">0</strong><span>本週次數</span></div>
                         <div><strong id="history-today">0</strong><span>本日次數</span></div>
                         <div><strong id="history-perfect">0</strong><span>滿分次數</span></div>
+                        <div><strong id="history-earned">0</strong><span>累積獲得點數</span></div>
+                        <div><strong id="history-spent">0</strong><span>扭蛋累積花費</span></div>
                         <div><strong id="history-points">0</strong><span>可用點數</span></div>
                     </div>
                     <div class="history-heading"><h3>最近 10 筆成績</h3></div>
@@ -103,12 +105,26 @@
                 </div>
                 <p id="gacha-result" class="gacha-result" role="status" aria-live="polite">正在讀取點數…</p>
                 <button id="gacha-spin-btn" class="button button-primary" type="button" disabled>花 5 點轉扭蛋</button>
-                <div class="reward-section"><h3>我的獎勵清單</h3><ul id="reward-list" class="reward-list"></ul></div>
+                <div id="reward-section" class="reward-section">
+                    <h3><button id="reward-toggle" class="reward-toggle" type="button" aria-controls="reward-list" aria-expanded="false">
+                        <span>我的獎勵清單 <span id="reward-count">（0）</span></span><span class="reward-chevron" aria-hidden="true">⌄</span>
+                    </button></h3>
+                    <ul id="reward-list" class="reward-list hide"></ul>
+                </div>
             </section>
+
+            <dialog id="gacha-win-dialog" class="gacha-win-dialog" aria-labelledby="gacha-win-title">
+                <div class="gacha-win-icon" aria-hidden="true">🎉</div>
+                <h2 id="gacha-win-title">恭喜抽到！</h2>
+                <p id="gacha-win-prize" class="gacha-win-prize"></p>
+                <p class="gacha-win-hint">已加入下方的「我的獎勵清單」</p>
+                <button id="gacha-win-close" class="button button-primary" type="button">查看我的獎勵</button>
+            </dialog>
 
             <dialog id="issue-dialog" class="issue-dialog" aria-labelledby="issue-title">
                 <h2 id="issue-title">確認核發獎勵</h2>
                 <p id="issue-reward-name"></p>
+                <p>領獎時由管理者輸入核發碼，玩家不需要填寫。</p>
                 <label class="field-label" for="issue-pin">管理者核發碼</label>
                 <input id="issue-pin" class="name-input" type="password" autocomplete="off" placeholder="輸入核發碼">
                 <p id="issue-error" class="form-error hide" role="alert"></p>
@@ -205,7 +221,7 @@
             <footer class="app-footer"><span>一題一題，慢慢變厲害。</span><span>がんばってね ✦</span></footer>
         </div>
     </main>
-    <script src="questions.js?v=20261122-2"></script>
-    <script src="script.js?v=20261122-2"></script>
+    <script src="questions.js?v=20261122-4"></script>
+    <script src="script.js?v=20261122-4"></script>
 </body>
 </html>

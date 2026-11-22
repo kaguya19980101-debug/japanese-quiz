@@ -105,6 +105,7 @@ function renderRewards(state) {
     gachaState = state;
     $('gacha-points').textContent = state.stats.points;
     $('gacha-spin-btn').disabled = state.stats.points < 5 || !state.prizesAvailable;
+    $('reward-count').textContent = `（${state.rewards.length}）`;
     const list = $('reward-list');
     list.replaceChildren();
     if (!state.rewards.length) {
@@ -129,7 +130,7 @@ function renderRewards(state) {
         } else {
             const button = document.createElement('button');
             button.type = 'button';
-            button.textContent = '確認核發';
+            button.textContent = '管理者確認核發';
             button.addEventListener('click', () => openIssue(reward));
             item.appendChild(button);
         }
@@ -137,9 +138,16 @@ function renderRewards(state) {
     });
 }
 
+function setRewardListOpen(open) {
+    $('reward-list').classList.toggle('hide', !open);
+    $('reward-toggle').setAttribute('aria-expanded', String(open));
+}
+
 async function openGacha() {
     if (!getName()) return;
     const view = ++gachaViewToken;
+    if ($('gacha-win-dialog').open) $('gacha-win-dialog').close();
+    setRewardListOpen(false);
     $('gacha-machine').classList.remove('spinning');
     $('gacha-result').textContent = '正在讀取點數…';
     $('gacha-spin-btn').disabled = true;
@@ -153,6 +161,16 @@ async function openGacha() {
     } catch (error) {
         if (view === gachaViewToken) $('gacha-result').textContent = error.message;
     }
+}
+
+function showDrawSuccess(state, drawId) {
+    const reward = state.rewards.find(item => item.drawId === drawId);
+    if (!reward) return false;
+    renderRewards(state);
+    $('gacha-result').textContent = `抽到「${reward.prize}」！已加入我的獎勵清單。`;
+    $('gacha-win-prize').textContent = reward.prize;
+    if (!$('gacha-win-dialog').open) $('gacha-win-dialog').showModal();
+    return true;
 }
 
 async function spinGacha() {
@@ -171,12 +189,17 @@ async function spinGacha() {
             new Promise(resolve => setTimeout(resolve, 2050))
         ]);
         if (view !== gachaViewToken) return;
-        renderRewards(state);
-        $('gacha-result').textContent = `抽到「${state.rewards.find(item => item.drawId === drawId).prize}」！`;
+        showDrawSuccess(state, drawId);
     } catch (error) {
         if (view === gachaViewToken) {
-            $('gacha-result').textContent = error.message;
-            try { renderRewards(await readHistory(currentUserId)); } catch (_) { /* 保持目前顯示 */ }
+            try {
+                const state = await readHistory(currentUserId);
+                if (view !== gachaViewToken) return;
+                if (showDrawSuccess(state, drawId)) return;
+                renderRewards(state);
+            } catch (_) { /* 保持目前顯示 */ }
+            $('gacha-spin-btn').disabled = true;
+            $('gacha-result').textContent = `${error.message} 請重新開啟扭蛋頁確認，避免重複扣點。`;
         }
     }
 }
@@ -254,6 +277,8 @@ function renderHistory(result) {
     $('history-week').textContent = stats.week;
     $('history-today').textContent = stats.today;
     $('history-perfect').textContent = stats.perfect;
+    $('history-earned').textContent = stats.earned ?? '—';
+    $('history-spent').textContent = stats.spent ?? '—';
     $('history-points').textContent = stats.points;
     const list = $('history-list');
     list.replaceChildren();
@@ -593,6 +618,14 @@ $('nav-menu-toggle').addEventListener('click', () => {
 $('menu-history').addEventListener('click', showHistory);
 $('menu-gacha').addEventListener('click', openGacha);
 $('gacha-spin-btn').addEventListener('click', spinGacha);
+$('reward-toggle').addEventListener('click', () => {
+    setRewardListOpen($('reward-list').classList.contains('hide'));
+});
+$('gacha-win-close').addEventListener('click', () => {
+    $('gacha-win-dialog').close();
+    setRewardListOpen(true);
+    $('reward-section').scrollIntoView({behavior: 'smooth', block: 'start'});
+});
 $('gacha-back-btn').addEventListener('click', () => {
     ++gachaViewToken;
     showScreen(startScreen);

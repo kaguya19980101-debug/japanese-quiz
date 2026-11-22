@@ -17,6 +17,13 @@
                 <div class="brand-mark" aria-hidden="true">あ</div>
                 <div class="brand-name">NIHONGO <span>NOTE</span></div>
                 <span class="brand-pill">日本語練習帳</span>
+                <div id="nav-wrap" class="nav-wrap">
+                    <button id="nav-menu-toggle" class="nav-menu-toggle" type="button" aria-label="開啟功能選單" aria-expanded="false" aria-controls="nav-menu"><span></span><span></span><span></span></button>
+                    <nav id="nav-menu" class="nav-menu hide" aria-label="功能選單">
+                        <button id="menu-history" type="button">📊 <span>統計</span></button>
+                        <button id="menu-gacha" type="button">🎁 <span>扭蛋</span></button>
+                    </nav>
+                </div>
             </header>
 
             <section id="start-screen" class="screen start-screen" aria-labelledby="start-title">
@@ -59,6 +66,39 @@
                 </div>
             </section>
 
+
+            <section id="history-screen" class="screen history-screen hide" aria-labelledby="history-title">
+                <button id="history-back-btn" class="feature-back" type="button">← 返回</button>
+                <p class="eyebrow">YOUR PROGRESS</p>
+                <h2 id="history-title">統計<span class="title-dot">。</span></h2>
+                <p id="history-name" class="subtitle"></p>
+                <p id="history-status" class="history-status" role="status" aria-live="polite">正在讀取紀錄…</p>
+                <div id="history-content" class="hide">
+                    <div class="history-stats">
+                        <div><strong id="history-attempts">0</strong><span>總次數</span></div>
+                        <div><strong id="history-week">0</strong><span>本週次數</span></div>
+                        <div><strong id="history-today">0</strong><span>本日次數</span></div>
+                        <div><strong id="history-perfect">0</strong><span>滿分次數</span></div>
+                    </div>
+                    <div class="history-heading"><h3>最近 10 筆成績</h3></div>
+                    <ol id="history-list" class="history-list"></ol>
+                </div>
+            </section>
+
+            <section id="gacha-screen" class="screen gacha-screen hide" aria-labelledby="gacha-title">
+                <button id="gacha-back-btn" class="feature-back" type="button">← 返回</button>
+                <p class="eyebrow">A LITTLE SURPRISE</p>
+                <h2 id="gacha-title">扭蛋機<span class="title-dot">。</span></h2>
+                <p class="subtitle">試著轉一次，看看扭蛋會怎麼跑出來！</p>
+                <div id="gacha-machine" class="gacha-machine" aria-hidden="true">
+                    <div class="gacha-dome"><i></i><i></i><i></i><i></i><i></i><i></i></div>
+                    <div class="gacha-body"><div class="gacha-knob"><span></span></div><div class="gacha-chute"></div></div>
+                    <div class="gacha-base"></div>
+                    <div class="gacha-capsule"></div>
+                </div>
+                <p id="gacha-result" class="gacha-result" role="status" aria-live="polite">獎品文字之後可以再設定。</p>
+                <button id="gacha-spin-btn" class="button button-primary" type="button">轉動扭蛋機</button>
+            </section>
 
             <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
                 <div class="settings-dialog-header">

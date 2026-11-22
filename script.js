@@ -43,6 +43,8 @@ const $ = id => document.getElementById(id);
 const startScreen = $('start-screen');
 const gameScreen = $('game-screen');
 const resultScreen = $('result-screen');
+const historyScreen = $('history-screen');
+const gachaScreen = $('gacha-screen');
 const usernameInput = $('username');
 const answerButtonsEl = $('answer-buttons');
 const submitBtn = $('submit-btn');
@@ -63,8 +65,115 @@ function shuffle(items) {
 }
 
 function showScreen(screen) {
-    [startScreen, gameScreen, resultScreen].forEach(element => element.classList.toggle('hide', element !== screen));
+    [startScreen, gameScreen, resultScreen, historyScreen, gachaScreen].forEach(element => element.classList.toggle('hide', element !== screen));
+    $('nav-wrap').classList.toggle('hide', screen === gameScreen || screen === resultScreen);
+    closeNavMenu();
     window.scrollTo(0, 0);
+}
+
+function closeNavMenu() {
+    $('nav-menu').classList.add('hide');
+    $('nav-menu-toggle').setAttribute('aria-expanded', 'false');
+}
+
+let gachaTimer = null;
+function openGacha() {
+    clearTimeout(gachaTimer);
+    $('gacha-machine').classList.remove('spinning');
+    $('gacha-result').textContent = '獎品文字之後可以再設定。';
+    $('gacha-spin-btn').disabled = false;
+    showScreen(gachaScreen);
+}
+
+function spinGacha() {
+    const machine = $('gacha-machine');
+    if ($('gacha-spin-btn').disabled) return;
+    machine.classList.remove('spinning');
+    void machine.offsetWidth;
+    machine.classList.add('spinning');
+    $('gacha-result').textContent = '扭蛋轉動中…';
+    $('gacha-spin-btn').disabled = true;
+    gachaTimer = setTimeout(() => {
+        $('gacha-result').textContent = '扭蛋出來了！獎品內容待設定 ✨';
+        $('gacha-spin-btn').disabled = false;
+    }, 2050);
+}
+
+let historyRequestNumber = 0;
+let historyViewToken = 0;
+function readHistory(name) {
+    return new Promise((resolve, reject) => {
+        const callbackName = `__quizHistory_${Date.now()}_${++historyRequestNumber}`;
+        const script = document.createElement('script');
+        const url = new URL(SHEET_URL);
+        url.searchParams.set('action', 'history');
+        url.searchParams.set('name', name);
+        url.searchParams.set('callback', callbackName);
+        let timer;
+        let settled = false;
+        const clean = () => {
+            clearTimeout(timer);
+            script.remove();
+            delete window[callbackName];
+        };
+        window[callbackName] = result => {
+            if (settled) return;
+            settled = true;
+            clean();
+            result && result.ok ? resolve(result) : reject(new Error(result?.error || '無法讀取歷史數據'));
+        };
+        script.onerror = () => {
+            if (settled) return;
+            settled = true;
+            clean();
+            reject(new Error('讀取失敗，請檢查試算表程式是否已部署'));
+        };
+        timer = setTimeout(() => {
+            if (settled) return;
+            settled = true;
+            clean();
+            reject(new Error('讀取逾時，請確認試算表程式已加入歷史數據功能'));
+        }, 12000);
+        script.src = url.toString();
+        document.head.appendChild(script);
+    });
+}
+
+function renderHistory(result) {
+    const stats = result.stats;
+    $('history-attempts').textContent = stats.attempts;
+    $('history-week').textContent = stats.week;
+    $('history-today').textContent = stats.today;
+    $('history-perfect').textContent = stats.perfect;
+    const list = $('history-list');
+    list.replaceChildren();
+    result.records.forEach(record => {
+        const item = document.createElement('li');
+        const date = document.createElement('span');
+        const scoreText = document.createElement('strong');
+        date.textContent = record.time || '未記錄日期';
+        scoreText.textContent = record.score || '未記錄成績';
+        item.append(date, scoreText);
+        list.appendChild(item);
+    });
+    $('history-content').classList.toggle('hide', stats.attempts === 0);
+    $('history-status').textContent = stats.attempts ? '' : '還沒有完成的測驗紀錄，來挑戰第一回吧！';
+}
+
+async function showHistory() {
+    const name = getName();
+    if (!name) return;
+    const request = ++historyViewToken;
+    $('history-name').textContent = `${name} 的練習紀錄`;
+    $('history-status').textContent = '正在讀取紀錄…';
+    $('history-content').classList.add('hide');
+    showScreen(historyScreen);
+    try {
+        const result = await readHistory(name);
+        if (request === historyViewToken) renderHistory(result);
+    } catch (error) {
+        if (request === historyViewToken) $('history-status').textContent = error.message;
+    }
 }
 
 function currentLevel() {
@@ -355,6 +464,25 @@ function sendDataToGoogleSheet(finalScore, fullScore) {
 }
 
 $('start-btn').addEventListener('click', startGame);
+$('nav-menu-toggle').addEventListener('click', () => {
+    const opening = $('nav-menu').classList.contains('hide');
+    $('nav-menu').classList.toggle('hide', !opening);
+    $('nav-menu-toggle').setAttribute('aria-expanded', String(opening));
+});
+$('menu-history').addEventListener('click', showHistory);
+$('menu-gacha').addEventListener('click', openGacha);
+$('gacha-spin-btn').addEventListener('click', spinGacha);
+$('gacha-back-btn').addEventListener('click', () => {
+    clearTimeout(gachaTimer);
+    showScreen(startScreen);
+});
+$('history-back-btn').addEventListener('click', () => { ++historyViewToken; showScreen(startScreen); });
+document.addEventListener('click', event => {
+    if (!$('nav-wrap').contains(event.target)) closeNavMenu();
+});
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape') closeNavMenu();
+});
 $('review-btn').addEventListener('click', startReviewMode);
 submitBtn.addEventListener('click', submitAnswer);
 nextBtn.addEventListener('click', nextQuestion);

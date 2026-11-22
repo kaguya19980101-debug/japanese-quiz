@@ -25,6 +25,8 @@ let currentQuestionIndex = 0;
 let score = 0;
 let selectedOption = null;
 let currentUserName = '';
+let currentUserId = '';
+let currentAttemptId = '';
 let wrongAnswers = [];
 let isReviewMode = false;
 let settingsSnapshot = null;
@@ -46,6 +48,7 @@ const resultScreen = $('result-screen');
 const historyScreen = $('history-screen');
 const gachaScreen = $('gacha-screen');
 const usernameInput = $('username');
+const playerIdInput = $('player-id');
 const answerButtonsEl = $('answer-buttons');
 const submitBtn = $('submit-btn');
 const nextBtn = $('next-btn');
@@ -76,38 +79,144 @@ function closeNavMenu() {
     $('nav-menu-toggle').setAttribute('aria-expanded', 'false');
 }
 
-let gachaTimer = null;
-function openGacha() {
-    clearTimeout(gachaTimer);
-    $('gacha-machine').classList.remove('spinning');
-    $('gacha-result').textContent = '獎品文字之後可以再設定。';
-    $('gacha-spin-btn').disabled = false;
-    showScreen(gachaScreen);
+let gachaViewToken = 0;
+let gachaState = null;
+let selectedDrawId = null;
+function operationId() {
+    return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 14)}`;
 }
 
-function spinGacha() {
+async function postAndConfirm(fields, isConfirmed) {
+    const body = new FormData();
+    Object.entries(fields).forEach(([key, value]) => body.append(key, value));
+    try { await fetch(SHEET_URL, {method: 'POST', body, mode: 'no-cors'}); }
+    catch (error) { console.warn('送出結果無法確認', error); }
+    for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 650));
+        try {
+            const state = await readHistory(fields.playerId);
+            if (isConfirmed(state)) return state;
+        } catch (error) { console.warn('讀取確認中', error); }
+    }
+    throw new Error('尚未確認寫入，請稍後重新開啟查看。');
+}
+
+function renderRewards(state) {
+    gachaState = state;
+    $('gacha-points').textContent = state.stats.points;
+    $('gacha-spin-btn').disabled = state.stats.points < 5 || !state.prizesAvailable;
+    const list = $('reward-list');
+    list.replaceChildren();
+    if (!state.rewards.length) {
+        const empty = document.createElement('li');
+        empty.textContent = '還沒有抽獎紀錄。';
+        list.appendChild(empty);
+    }
+    state.rewards.forEach(reward => {
+        const item = document.createElement('li');
+        const info = document.createElement('div');
+        const title = document.createElement('strong');
+        title.textContent = reward.prize;
+        const time = document.createElement('small');
+        time.textContent = reward.time;
+        info.append(title, time);
+        item.appendChild(info);
+        if (reward.status === '已核發') {
+            const badge = document.createElement('span');
+            badge.className = 'issued';
+            badge.textContent = '已核發';
+            item.appendChild(badge);
+        } else {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.textContent = '確認核發';
+            button.addEventListener('click', () => openIssue(reward));
+            item.appendChild(button);
+        }
+        list.appendChild(item);
+    });
+}
+
+async function openGacha() {
+    if (!getName()) return;
+    const view = ++gachaViewToken;
+    $('gacha-machine').classList.remove('spinning');
+    $('gacha-result').textContent = '正在讀取點數…';
+    $('gacha-spin-btn').disabled = true;
+    showScreen(gachaScreen);
+    try {
+        const state = await readHistory(currentUserId);
+        if (view !== gachaViewToken) return;
+        renderRewards(state);
+        $('gacha-result').textContent = !state.prizesAvailable ? '請先在獎勵設定表填入獎品。'
+            : state.stats.points < 5 ? '累積 5 點就可以扭蛋！' : '可以扭蛋囉！';
+    } catch (error) {
+        if (view === gachaViewToken) $('gacha-result').textContent = error.message;
+    }
+}
+
+async function spinGacha() {
     const machine = $('gacha-machine');
-    if ($('gacha-spin-btn').disabled) return;
+    if ($('gacha-spin-btn').disabled || !gachaState || gachaState.stats.points < 5) return;
+    const view = gachaViewToken;
+    const drawId = operationId();
     machine.classList.remove('spinning');
     void machine.offsetWidth;
     machine.classList.add('spinning');
     $('gacha-result').textContent = '扭蛋轉動中…';
     $('gacha-spin-btn').disabled = true;
-    gachaTimer = setTimeout(() => {
-        $('gacha-result').textContent = '扭蛋出來了！獎品內容待設定 ✨';
-        $('gacha-spin-btn').disabled = false;
-    }, 2050);
+    try {
+        const [state] = await Promise.all([
+            postAndConfirm({action: 'draw', playerId: currentUserId, drawId}, result => result.rewards.some(item => item.drawId === drawId)),
+            new Promise(resolve => setTimeout(resolve, 2050))
+        ]);
+        if (view !== gachaViewToken) return;
+        renderRewards(state);
+        $('gacha-result').textContent = `抽到「${state.rewards.find(item => item.drawId === drawId).prize}」！`;
+    } catch (error) {
+        if (view === gachaViewToken) {
+            $('gacha-result').textContent = error.message;
+            try { renderRewards(await readHistory(currentUserId)); } catch (_) { /* 保持目前顯示 */ }
+        }
+    }
+}
+
+function openIssue(reward) {
+    selectedDrawId = reward.drawId;
+    $('issue-reward-name').textContent = reward.prize;
+    $('issue-pin').value = '';
+    $('issue-error').classList.add('hide');
+    $('issue-dialog').showModal();
+}
+
+async function confirmIssue() {
+    const pin = $('issue-pin').value;
+    if (!pin || !selectedDrawId) return;
+    $('issue-confirm').disabled = true;
+    $('issue-error').classList.add('hide');
+    try {
+        const state = await postAndConfirm({action: 'issue', playerId: currentUserId, drawId: selectedDrawId, pin},
+            result => result.rewards.some(item => item.drawId === selectedDrawId && item.status === '已核發'));
+        $('issue-dialog').close();
+        renderRewards(state);
+    } catch (_) {
+        $('issue-error').textContent = '核發未確認，請檢查管理碼或稍後重試。';
+        $('issue-error').classList.remove('hide');
+    } finally {
+        $('issue-pin').value = '';
+        $('issue-confirm').disabled = false;
+    }
 }
 
 let historyRequestNumber = 0;
 let historyViewToken = 0;
-function readHistory(name) {
+function readHistory(playerId) {
     return new Promise((resolve, reject) => {
         const callbackName = `__quizHistory_${Date.now()}_${++historyRequestNumber}`;
         const script = document.createElement('script');
         const url = new URL(SHEET_URL);
         url.searchParams.set('action', 'history');
-        url.searchParams.set('name', name);
+        url.searchParams.set('playerId', playerId);
         url.searchParams.set('callback', callbackName);
         let timer;
         let settled = false;
@@ -145,6 +254,7 @@ function renderHistory(result) {
     $('history-week').textContent = stats.week;
     $('history-today').textContent = stats.today;
     $('history-perfect').textContent = stats.perfect;
+    $('history-points').textContent = stats.points;
     const list = $('history-list');
     list.replaceChildren();
     result.records.forEach(record => {
@@ -164,12 +274,12 @@ async function showHistory() {
     const name = getName();
     if (!name) return;
     const request = ++historyViewToken;
-    $('history-name').textContent = `${name} 的練習紀錄`;
+    $('history-name').textContent = `${name}（${currentUserId}）的練習紀錄`;
     $('history-status').textContent = '正在讀取紀錄…';
     $('history-content').classList.add('hide');
     showScreen(historyScreen);
     try {
-        const result = await readHistory(name);
+        const result = await readHistory(currentUserId);
         if (request === historyViewToken) renderHistory(result);
     } catch (error) {
         if (request === historyViewToken) $('history-status').textContent = error.message;
@@ -279,9 +389,12 @@ function closeSettings(save) {
 
 function getName() {
     const name = usernameInput.value.trim();
-    $('start-error').classList.toggle('hide', !!name);
-    if (!name) { usernameInput.focus(); return null; }
+    const id = playerIdInput.value.trim();
+    const valid = !!name && /^[A-Za-z0-9_-]{3,24}$/.test(id);
+    $('start-error').classList.toggle('hide', valid);
+    if (!valid) { (name ? playerIdInput : usernameInput).focus(); return null; }
     currentUserName = name;
+    currentUserId = id;
     return name;
 }
 
@@ -314,6 +427,7 @@ function initGame() {
     score = 0;
     currentQuestionIndex = 0;
     wrongAnswers = [];
+    currentAttemptId = operationId();
     $('score-text').textContent = '目前 0 分';
     $('perfect-score-img').classList.add('hide');
     $('review-container').classList.add('hide');
@@ -432,6 +546,7 @@ function showResults() {
         ? '完美通關！今天的努力有成果了。'
         : `答對 ${correctCount} 題，再看看錯題就更熟悉了。`;
 
+    $('result-save-status').textContent = isReviewMode ? '' : '成績同步中…';
     if (!isReviewMode) sendDataToGoogleSheet(score, fullScore);
     if (wrongAnswers.length) {
         const byQuestion = new Map([...savedMistakes, ...wrongAnswers].map(item => [item.q, item]));
@@ -454,13 +569,19 @@ function showResults() {
     showScreen(resultScreen);
 }
 
-function sendDataToGoogleSheet(finalScore, fullScore) {
-    const formData = new FormData();
-    formData.append('score', `${finalScore} / ${fullScore}`);
-    formData.append('time', new Date().toLocaleString());
-    formData.append('name', currentUserName);
-    fetch(SHEET_URL, { method: 'POST', body: formData, mode: 'no-cors' })
-        .catch(error => console.error('成績傳送失敗：', error));
+async function sendDataToGoogleSheet(finalScore, fullScore) {
+    const attemptId = currentAttemptId;
+    try {
+        const state = await postAndConfirm({action: 'score', score: `${finalScore} / ${fullScore}`,
+            name: currentUserName, playerId: currentUserId, attemptId},
+            result => result.records.some(item => item.attemptId === attemptId));
+        if (resultScreen.classList.contains('hide')) return;
+        $('result-save-status').textContent = finalScore >= 80
+            ? `成績已記錄，獲得 1 點！目前 ${state.stats.points} 點。`
+            : '成績已記錄，達 80 分可獲得 1 點。';
+    } catch (_) {
+        if (!resultScreen.classList.contains('hide')) $('result-save-status').textContent = '尚未確認寫入，請稍後到統計查看。';
+    }
 }
 
 $('start-btn').addEventListener('click', startGame);
@@ -473,9 +594,11 @@ $('menu-history').addEventListener('click', showHistory);
 $('menu-gacha').addEventListener('click', openGacha);
 $('gacha-spin-btn').addEventListener('click', spinGacha);
 $('gacha-back-btn').addEventListener('click', () => {
-    clearTimeout(gachaTimer);
+    ++gachaViewToken;
     showScreen(startScreen);
 });
+$('issue-cancel').addEventListener('click', () => $('issue-dialog').close());
+$('issue-confirm').addEventListener('click', confirmIssue);
 $('history-back-btn').addEventListener('click', () => { ++historyViewToken; showScreen(startScreen); });
 document.addEventListener('click', event => {
     if (!$('nav-wrap').contains(event.target)) closeNavMenu();
@@ -488,6 +611,7 @@ submitBtn.addEventListener('click', submitAnswer);
 nextBtn.addEventListener('click', nextQuestion);
 $('restart-btn').addEventListener('click', () => { updateReviewButton(); showScreen(startScreen); });
 usernameInput.addEventListener('input', () => $('start-error').classList.add('hide'));
+playerIdInput.addEventListener('input', () => $('start-error').classList.add('hide'));
 usernameInput.addEventListener('keydown', event => { if (event.key === 'Enter') startGame(); });
 document.querySelectorAll('input[name="level"]').forEach(input => input.addEventListener('change', updateTopicSelection));
 $('open-settings').addEventListener('click', openSettings);

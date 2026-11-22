@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#e9f6fb">
     <title>日文大會考｜每日練習</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20261122-2">
 </head>
 <body>
     <main class="app-shell">
@@ -50,6 +50,9 @@
                 <div class="setup-panel">
                     <label class="field-label" for="username">你的名字</label>
                     <input type="text" id="username" class="name-input" placeholder="輸入名字或暱稱" maxlength="30" autocomplete="nickname">
+                    <label class="field-label" for="player-id">玩家 ID</label>
+                    <input type="text" id="player-id" class="name-input" placeholder="固定使用同一個 ID（英數、_、-）" maxlength="24" autocomplete="username" inputmode="text">
+                    <p class="id-hint">統計和點數依 ID 累積，請記住並固定使用。</p>
 
                     <div class="settings-summary">
                         <div class="settings-summary-copy">
@@ -62,7 +65,7 @@
 
                     <button id="start-btn" class="button button-primary" type="button">開始挑戰 <span aria-hidden="true">→</span></button>
                     <button id="review-btn" class="button button-secondary hide" type="button">複習歷史錯題 <span id="wrong-count" class="count-badge">0</span></button>
-                    <p id="start-error" class="form-error hide" role="alert">先輸入名字，再開始挑戰喔！</p>
+                    <p id="start-error" class="form-error hide" role="alert">請輸入名字與玩家 ID（英數、_、-）。</p>
                 </div>
             </section>
 
@@ -79,6 +82,7 @@
                         <div><strong id="history-week">0</strong><span>本週次數</span></div>
                         <div><strong id="history-today">0</strong><span>本日次數</span></div>
                         <div><strong id="history-perfect">0</strong><span>滿分次數</span></div>
+                        <div><strong id="history-points">0</strong><span>可用點數</span></div>
                     </div>
                     <div class="history-heading"><h3>最近 10 筆成績</h3></div>
                     <ol id="history-list" class="history-list"></ol>
@@ -89,16 +93,27 @@
                 <button id="gacha-back-btn" class="feature-back" type="button">← 返回</button>
                 <p class="eyebrow">A LITTLE SURPRISE</p>
                 <h2 id="gacha-title">扭蛋機<span class="title-dot">。</span></h2>
-                <p class="subtitle">試著轉一次，看看扭蛋會怎麼跑出來！</p>
+                <p class="subtitle">測驗達 80 分可得 1 點，每 5 點扭一次。</p>
+                <div class="gacha-balance">目前可用 <strong id="gacha-points">—</strong> 點</div>
                 <div id="gacha-machine" class="gacha-machine" aria-hidden="true">
                     <div class="gacha-dome"><i></i><i></i><i></i><i></i><i></i><i></i></div>
                     <div class="gacha-body"><div class="gacha-knob"><span></span></div><div class="gacha-chute"></div></div>
                     <div class="gacha-base"></div>
                     <div class="gacha-capsule"></div>
                 </div>
-                <p id="gacha-result" class="gacha-result" role="status" aria-live="polite">獎品文字之後可以再設定。</p>
-                <button id="gacha-spin-btn" class="button button-primary" type="button">轉動扭蛋機</button>
+                <p id="gacha-result" class="gacha-result" role="status" aria-live="polite">正在讀取點數…</p>
+                <button id="gacha-spin-btn" class="button button-primary" type="button" disabled>花 5 點轉扭蛋</button>
+                <div class="reward-section"><h3>我的獎勵清單</h3><ul id="reward-list" class="reward-list"></ul></div>
             </section>
+
+            <dialog id="issue-dialog" class="issue-dialog" aria-labelledby="issue-title">
+                <h2 id="issue-title">確認核發獎勵</h2>
+                <p id="issue-reward-name"></p>
+                <label class="field-label" for="issue-pin">管理者核發碼</label>
+                <input id="issue-pin" class="name-input" type="password" autocomplete="off" placeholder="輸入核發碼">
+                <p id="issue-error" class="form-error hide" role="alert"></p>
+                <div class="issue-actions"><button id="issue-cancel" class="button button-secondary" type="button">取消</button><button id="issue-confirm" class="button button-primary" type="button">確認已核發</button></div>
+            </dialog>
 
             <dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title">
                 <div class="settings-dialog-header">
@@ -169,6 +184,7 @@
                 <p class="eyebrow">PRACTICE COMPLETE</p>
                 <h2 id="result-title">練習完成！</h2>
                 <p id="result-message" class="subtitle">今天也向前進步了一點。</p>
+                <p id="result-save-status" class="result-save-status" role="status"></p>
                 <div class="score-panel">
                     <div class="score-circle"><span id="final-score">0</span><small id="score-total">/ 100 分</small></div>
                     <div class="score-summary">
@@ -189,7 +205,7 @@
             <footer class="app-footer"><span>一題一題，慢慢變厲害。</span><span>がんばってね ✦</span></footer>
         </div>
     </main>
-    <script src="questions.js"></script>
-    <script src="script.js"></script>
+    <script src="questions.js?v=20261122-2"></script>
+    <script src="script.js?v=20261122-2"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#e9f6fb">
     <title>日文大會考｜每日練習</title>
-    <link rel="stylesheet" href="style.css?v=20261122-4">
+    <link rel="stylesheet" href="style.css?v=20261123-1">
 </head>
 <body>
     <main class="app-shell">
@@ -148,6 +148,18 @@
                                 <input type="radio" name="level" value="N4">
                                 <span class="level-card"><strong>N4 挑戰</strong><small>N5 + N4 都會考</small></span>
                             </label>
+                            <label class="level-choice">
+                                <input type="radio" name="level" value="N3">
+                                <span class="level-card"><strong>N3 進階</strong><small>包含 N5～N3</small></span>
+                            </label>
+                            <label class="level-choice">
+                                <input type="radio" name="level" value="N2">
+                                <span class="level-card"><strong>N2 進階</strong><small>包含 N5～N2</small></span>
+                            </label>
+                            <label class="level-choice">
+                                <input type="radio" name="level" value="N1">
+                                <span class="level-card"><strong>N1 挑戰</strong><small>包含 N5～N1</small></span>
+                            </label>
                         </div>
                     </fieldset>
 
@@ -155,15 +167,28 @@
                         <legend class="field-label">選擇練習主題 <span class="field-hint">可複選</span></legend>
                         <div class="topic-actions"><button id="select-all-topics" type="button">全選主題</button><span id="settings-count" aria-live="polite">載入主題中…</span></div>
                         <div class="topic-section" id="n5-topic-section">
-                            <div class="topic-section-heading"><strong>N5 基礎主題</strong><span>選 N5 或 N4 都會考</span></div>
+                            <div class="topic-section-heading"><strong>N5 基礎主題</strong><span>所有等級都會考</span></div>
                             <div id="n5-topic-grid" class="topic-grid"></div>
                         </div>
                         <div class="topic-section" id="n4-topic-section">
-                            <div class="topic-section-heading"><strong>N4 延伸主題</strong><span>選 N4 時才會出題</span></div>
+                            <div class="topic-section-heading"><strong>N4 延伸主題</strong><span>選 N4～N1 時出題</span></div>
                             <div id="n4-topic-grid" class="topic-grid"></div>
+                        </div>
+                        <div class="topic-section" id="n3-topic-section">
+                            <div class="topic-section-heading"><strong>N3 延伸主題</strong><span>選 N3～N1 時出題</span></div>
+                            <div id="n3-topic-grid" class="topic-grid"></div>
+                        </div>
+                        <div class="topic-section" id="n2-topic-section">
+                            <div class="topic-section-heading"><strong>N2 延伸主題</strong><span>選 N2～N1 時出題</span></div>
+                            <div id="n2-topic-grid" class="topic-grid"></div>
+                        </div>
+                        <div class="topic-section" id="n1-topic-section">
+                            <div class="topic-section-heading"><strong>N1 延伸主題</strong><span>選 N1 時出題</span></div>
+                            <div id="n1-topic-grid" class="topic-grid"></div>
                         </div>
                     </fieldset>
 
+                    <p class="field-hint">新詞彙讀音參考 <a href="https://github.com/evanclan/OpenJLPT" target="_blank" rel="noopener noreferrer">OpenJLPT</a>（<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noopener noreferrer">CC BY-SA 4.0</a>）；級別供練習參考。</p>
                     <p id="topic-error" class="form-error hide" role="alert">請至少勾選一個主題。</p>
                 </div>
                 <div class="settings-dialog-footer">
@@ -221,7 +246,7 @@
             <footer class="app-footer"><span>一題一題，慢慢變厲害。</span><span>がんばってね ✦</span></footer>
         </div>
     </main>
-    <script src="questions.js?v=20261122-4"></script>
-    <script src="script.js?v=20261122-4"></script>
+    <script src="questions.js?v=20261123-1"></script>
+    <script src="script.js?v=20261123-1"></script>
 </body>
 </html>

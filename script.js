@@ -1,22 +1,34 @@
 const TOTAL_QUESTIONS = 20;
 const POINTS_PER_Q = 5;
 const STORAGE_KEY = 'my_mistakes';
-const ACTIVE_LEVELS = new Set(['N5', 'N4']);
+const LEVEL_ORDER = ['N5', 'N4', 'N3', 'N2', 'N1'];
 const TOPIC_DEFINITIONS = [
-    { id: 'n5_numbers', level: 'N5', name: '數字' },
-    { id: 'n5_greetings', level: 'N5', name: '問候' },
-    { id: 'n5_time', level: 'N5', name: '時間' },
-    { id: 'n5_people', level: 'N5', name: '人物' },
-    { id: 'n5_directions', level: 'N5', name: '方位' },
-    { id: 'n5_actions', level: 'N5', name: '基本動作' },
-    { id: 'n5_animals', level: 'N5', name: '動物' },
-    { id: 'n5_colors', level: 'N5', name: '顏色' },
-    { id: 'n5_nature', level: 'N5', name: '季節與自然' },
-    { id: 'n4_food', level: 'N4', name: '食物' },
-    { id: 'n4_life', level: 'N4', name: '生活' },
-    { id: 'n4_travel', level: 'N4', name: '交通與場所' },
-    { id: 'n4_descriptions', level: 'N4', name: '形容與感受' }
+    { id: 'n5_life', level: 'N5', name: '數字、時間與人物' },
+    { id: 'n5_food', level: 'N5', name: '食物、購物與物品' },
+    { id: 'n5_world', level: 'N5', name: '場所、交通與自然' },
+    { id: 'n5_actions', level: 'N5', name: '動作、形容與感受' },
+    { id: 'n4_food', level: 'N4', name: '食物、健康與購物' },
+    { id: 'n4_life', level: 'N4', name: '人物與日常生活' },
+    { id: 'n4_travel', level: 'N4', name: '場所、交通與自然' },
+    { id: 'n4_descriptions', level: 'N4', name: '動作、形容與感受' },
+    { id: 'n3_life', level: 'N3', name: '人物與日常生活' },
+    { id: 'n3_food', level: 'N3', name: '飲食、健康與物品' },
+    { id: 'n3_travel', level: 'N3', name: '場所與自然' },
+    { id: 'n3_society', level: 'N3', name: '社會、文化與學習' },
+    { id: 'n3_actions', level: 'N3', name: '動作與變化' },
+    { id: 'n3_feelings', level: 'N3', name: '心情與描述' },
+    { id: 'n2_life', level: 'N2', name: '人物與日常生活' },
+    { id: 'n2_society', level: 'N2', name: '社會、工作與學習' },
+    { id: 'n2_world', level: 'N2', name: '自然、環境與物品' },
+    { id: 'n2_expression', level: 'N2', name: '動作、狀態與表達' },
+    { id: 'n1_life', level: 'N1', name: '人物與日常生活' },
+    { id: 'n1_society', level: 'N1', name: '社會、文化與工作' },
+    { id: 'n1_world', level: 'N1', name: '自然、環境與物品' },
+    { id: 'n1_expression', level: 'N1', name: '動作、狀態與表達' }
 ];
+function activeLevels(level) {
+    return LEVEL_ORDER.slice(0, LEVEL_ORDER.indexOf(level) + 1);
+}
 const TOPIC_NAMES = Object.fromEntries(TOPIC_DEFINITIONS.map(topic => [topic.id, topic.name]));
 const SHEET_URL = 'https://script.google.com/macros/s/AKfycbzQsKfyNKpWFdEWMl-tfgqA_Zd_tzOcW1BtjyzXUzmGBJoylK3gEO4HLmNWXfpWMfIu8w/exec';
 
@@ -340,19 +352,19 @@ function renderTopics() {
         count.textContent = `${questionBank.filter(question => question.topic === topic.id).length} 題`;
         card.append(check, name, count);
         label.append(input, card);
-        $(topic.level === 'N5' ? 'n5-topic-grid' : 'n4-topic-grid').appendChild(label);
+        $(topic.level.toLowerCase() + '-topic-grid').appendChild(label);
     }
 }
 
 function selectedTopics(level = currentLevel()) {
     return new Set([...document.querySelectorAll('input[name="topic"]:checked')]
-        .filter(input => level === 'N4' || input.dataset.level === 'N5')
+        .filter(input => activeLevels(level).includes(input.dataset.level))
         .map(input => input.value));
 }
 
 function eligibleQuestions(level, topics) {
     return questionBank.filter(question =>
-        (level === 'N4' ? ACTIVE_LEVELS.has(question.nLevel) : question.nLevel === 'N5') &&
+        activeLevels(level).includes(question.nLevel) &&
         topics.has(question.topic)
     );
 }
@@ -372,7 +384,9 @@ function updateReviewButton() {
 function updateTopicSelection() {
     const selected = selectedTopics();
     const level = currentLevel();
-    $('n4-topic-section').classList.toggle('hide', level === 'N5');
+    LEVEL_ORDER.forEach(topicLevel => {
+        $(topicLevel.toLowerCase() + '-topic-section').classList.toggle('hide', !activeLevels(level).includes(topicLevel));
+    });
     const available = eligibleQuestions(level, selected).length;
     $('settings-count').textContent = `已選 ${selected.size} 個主題，可抽 ${available} 題`;
     $('topic-error').classList.toggle('hide', selected.size > 0);
@@ -381,7 +395,7 @@ function updateTopicSelection() {
 function updateSettingsSummary() {
     const selected = selectedTopics();
     const available = eligibleQuestions(currentLevel(), selected).length;
-    $('settings-summary').textContent = currentLevel() === 'N4' ? 'N4 挑戰（含 N5）' : 'N5 入門';
+    $('settings-summary').textContent = currentLevel() === 'N5' ? 'N5 入門' : `${currentLevel()} 挑戰（含較低等級）`;
     $('topic-selection-summary').textContent = `${selected.size} 個主題・題庫 ${available} 題`;
     updateReviewButton();
 }
@@ -434,7 +448,7 @@ function startGame() {
     isReviewMode = false;
     shuffledQuestions = shuffle(filteredBank).slice(0, TOTAL_QUESTIONS);
     const topicLabel = topics.size === 1 ? TOPIC_NAMES[[...topics][0]] : `${topics.size} 主題`;
-    $('mode-label').textContent = `${selectedLevel === 'N4' ? 'N5 + N4' : 'N5'}｜${topicLabel}`;
+    $('mode-label').textContent = `${activeLevels(selectedLevel).join(' + ')}｜${topicLabel}`;
     initGame();
 }
 
@@ -657,7 +671,7 @@ $('settings-dialog').addEventListener('click', event => {
 });
 $('select-all-topics').addEventListener('click', () => {
     document.querySelectorAll('input[name="topic"]').forEach(input => {
-        if (currentLevel() === 'N4' || input.dataset.level === 'N5') input.checked = true;
+        if (activeLevels(currentLevel()).includes(input.dataset.level)) input.checked = true;
     });
     updateTopicSelection();
 });
